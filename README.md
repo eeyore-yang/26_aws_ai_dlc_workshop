@@ -6,6 +6,20 @@
 
 ---
 
+## 개발환경 사전 요구사항
+
+| 도구 | 용도 | 설치 |
+|------|------|------|
+| Python 3.11+ | 앱 실행 | - |
+| uv (uvx) | Kiro MCP 서버 자동 실행 | `pip install uv` 또는 [설치 가이드](https://docs.astral.sh/uv/getting-started/installation/) |
+| Node.js 18+ (npx) | Excalidraw MCP 서버 | [nodejs.org](https://nodejs.org/) |
+| Kiro IDE | AI 개발환경 + MCP 연동 | [kiro.dev](https://kiro.dev) |
+
+> `.kiro/settings/mcp.json`에 팀 공용 MCP 서버 설정이 포함되어 있습니다.
+> Kiro로 프로젝트를 열면 aws-docs, aws-knowledge, excalidraw 서버가 자동 연결됩니다.
+
+---
+
 ## Quick Start
 
 ### 1. aws-aidlc-rules 설치 (첫 클론 후 1회)
