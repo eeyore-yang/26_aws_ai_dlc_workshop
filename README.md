@@ -11,201 +11,157 @@
 자연어 질문 → Bedrock (Text2SQL) → DuckDB 실행 → Plotly 차트 → Streamlit 챗봇 응답
 ```
 
-**예시 질문**
-- "지난주 20대 여성의 구매 전환율 보여줘"
-- "헤드폰 카테고리 주차별 매출 추이 보여줘"
+---
+
+## 🗂 공통 초기 정렬 (GitHub + 프로젝트 기준선)
+
+초기에 팀이 함께 아래 항목을 **한 번만 확정**합니다.
+
+1. 프로젝트 목적/범위 (In/Out Scope)
+2. Task 개수와 우선순위/순서
+3. 기반 데이터셋 (`fact_events.csv`)과 스키마
+4. 공통 산출물 구조 (`aidlc-docs/`, `src/`, `app.py`)
+5. 브랜치 네이밍 규칙과 병합 규칙
+
+> 핵심: 시작점은 같이 맞추고, 구현은 각자 독립적으로 빠르게 실험합니다.
 
 ---
 
-## 🗂 Abstract Tasks
+## 🧩 작업 단위 (공통 목표)
 
 | # | Task | 설명 |
 |---|------|------|
 | T1 | 데이터 준비 | 전처리 CSV + DuckDB 데이터 마트 구축 |
 | T2 | 프롬프트 설계 | Few-shot NL↔SQL 매핑셋 + 시스템 프롬프트 구성 |
 | T3 | Text2SQL 모듈 | Bedrock 호출 → SQL + chart_type 반환 |
-| T4 | SQL 실행 레이어 | DuckDB로 SQL 실행 → DataFrame 반환 |
-| T5 | 차트 생성 모듈 | chart_type에 따라 Plotly 차트 생성 (bar/line/pie) |
-| T6 | Streamlit 챗봇 UI | 입력창 + 텍스트·차트 통합 응답 화면 |
+| T4 | SQL 실행 레이어 | DuckDB SQL 실행 → DataFrame 반환 |
+| T5 | 차트 생성 모듈 | chart_type별 Plotly 시각화 |
+| T6 | Streamlit 챗봇 UI | 텍스트·차트·테이블 통합 응답 |
 
 ---
 
-## 🏗 기술 스택
+## 🚀 협업 방식 변경: 3인 1팀 역할분담 → 1인 1팀 병렬 개발
 
-| 레이어 | 도구 |
-|--------|------|
-| AI | Amazon Bedrock (Claude) |
-| 데이터 | DuckDB + fact_events.csv |
-| UI | Streamlit (단일 파일 앱) |
-| 차트 | Plotly Express |
-| 개발 방법론 | AI-DLC (Kiro Steering Files) |
+기존 방식에서는 역할 경계에서 충돌이 발생하거나, 특정 인원만 Kiro Pro+ 경험이 깊어질 위험이 있었습니다.
+그래서 다음 방식으로 전환합니다.
 
----
+- **기존**: A/B/C 역할을 고정 분담해서 한 기능씩 나눔
+- **변경**: 각자 동일 목표를 가진 **독립 실행 브랜치**에서 end-to-end로 진행
 
-## 🔄 AI-DLC Workflows 매핑
+### 왜 이 방식인가?
 
-AI-DLC는 **Inception → Construction → Operations** 3단계로 구성된 개발 방법론입니다.  
-Kiro가 `.kiro/steering/` 의 rules 파일을 읽고 각 단계를 안내합니다.
-
-```
-AI-DLC 단계       우리 프로젝트
-────────────────────────────────────────────────────
-Inception         "Using AI-DLC, 챗봇 만들래"
-(기획·설계)        → Kiro가 요구사항 질문
-                  → 우리가 답변 (이미 결정된 내용)
-                  → aidlc-docs/ 에 자동 산출물 생성
-                    ├── requirements.md
-                    ├── design.md
-                    ├── aidlc-state.md
-                    └── audit.md
-
-Construction      T1 ~ T6 각각에 대해 Kiro가 코드 생성
-(구현·테스트)      → 단계마다 팀원이 승인
-                  → aidlc-docs/audit.md 에 전 과정 자동 기록
-
-Operations        Streamlit 로컬 실행 = 완료
-(배포)            (6시간 내에서는 간략히)
-────────────────────────────────────────────────────
-```
-
-> **핵심**: `aidlc-docs/` 에 쌓이는 기록이 "AI-DLC 활용도"의 증거가 됩니다.
+- 병목 구간(특정 담당자 대기)이 줄어듦
+- 각자 전체 파이프라인 경험 축적 가능
+- 한 브랜치가 막히면, 다른 브랜치 성과를 즉시 흡수 가능
+- 충돌은 “역할 경계”가 아니라 “검증된 결과물” 중심으로 해결 가능
 
 ---
 
-## 👥 팀 역할
+## 🌿 브랜치 전략 (1인 1팀 병렬)
 
-| 역할 | 담당 Tasks |
-|------|-----------|
-| A — AI·백엔드 | T3 (Text2SQL), T4 (SQL 실행), Bedrock 연동 |
-| B — 데이터 | T1 (데이터 마트), T2 (프롬프트·Few-shot) |
-| C — 프론트 | T5 (차트), T6 (Streamlit UI) |
+```
+main
+ └─ init/baseline                # 공통 기준선(목표/태스크/데이터셋 확정)
+     ├─ solo/A-e2e               # A의 독립 구현 브랜치
+     ├─ solo/B-e2e               # B의 독립 구현 브랜치
+     └─ solo/C-e2e               # C의 독립 구현 브랜치
+```
+
+### 브랜치 네이밍 규칙
+
+- 개인 실험: `solo/<name>-<focus>`
+- 다른 브랜치 성과 흡수 후 재시작: `solo/<name>-from-<source>`
+- 빠른 핫픽스: `hotfix/<topic>`
+
+예시:
+- `solo/A-e2e`
+- `solo/B-prompt-first`
+- `solo/C-from-A`
 
 ---
 
-## 🌿 브랜치 전략
+## 🔁 막혔을 때 운영 규칙 (핵심)
 
-```
-main          ← 동작 확인된 코드만 머지
- └─ base      ← 공통 초기 세팅 (데이터, 문서, Kiro rules)
-     ├─ dev/A ← A 독립 구현
-     ├─ dev/B ← B 독립 구현
-     └─ dev/C ← C 독립 구현
-```
-
-**막혔을 때**
-```bash
-# 다른 사람 브랜치에서 파일 가져오기
-git checkout dev/A -- src/bedrock_client.py
-
-# 다른 사람 브랜치 기반으로 재출발
-git checkout -b dev/C-from-A origin/dev/A
-```
-
----
-
-## 🎬 당일 시뮬레이션
-
-### 빌드 시작 직후
-
-```
-A  → Kiro Inception 진행 (20-30분)
-B  → fact_events.csv 로드 확인, DuckDB 마트 실행 검증
-C  → streamlit run app.py 기본 동작 확인
-```
-
-### A가 Inception 완료 후
+### 1) 다른 브랜치의 특정 파일만 가져오기
 
 ```bash
-git add aidlc-docs/
-git commit -m "feat: AI-DLC inception artifacts"
-git push origin base
+git checkout solo/A-e2e -- src/bedrock_client.py
 ```
 
-```
-B, C → git pull origin base
-      → git checkout -b dev/B (또는 dev/C)
-      → 각자 Kiro와 Construction 시작
+### 2) 잘 진행되는 브랜치를 기반으로 새로 분기
+
+```bash
+git checkout solo/A-e2e
+git checkout -b solo/C-from-A
 ```
 
-### Construction 병렬 진행
+### 3) Cherry-pick으로 커밋 단위 흡수
 
-**A의 Kiro 대화 예시**
-```
-"Using AI-DLC, implement bedrock_client.py.
- It should call Claude via boto3, parse the response as JSON
- containing sql and chart_type fields.
- Include MOCK_MODE fallback when Bedrock is unavailable."
-→ Kiro: 코드 생성 → A 승인 → audit.md 자동 기록
-```
-
-**B의 Kiro 대화 예시**
-```
-"Using AI-DLC, create system_prompt.txt and few_shot_examples.yaml.
- Schema: [data_schema.md 내용]
- Few-shot 10쌍 포함. 자연어→SQL 변환 정확도 최우선."
-→ Kiro: 생성 → B 승인 → 테스트 스크립트도 생성 요청
-```
-
-**C의 Kiro 대화 예시**
-```
-"Using AI-DLC, build app.py as a Streamlit chatbot.
- st.chat_message must display text + plotly chart + dataframe.
- visualizer.py handles bar/line/pie based on chart_type."
-→ Kiro: 생성 → C 승인 → streamlit run 으로 확인
-```
-
-### 통합
-
-```
-# 가장 진행이 빠른 브랜치(A)에 나머지 머지
-git checkout dev/A
-git merge dev/B
-git merge dev/C
-
-# E2E 데모 쿼리 검증
-"지난주 20대 여성의 구매 전환율 보여줘"  → ✅
-"헤드폰 카테고리 주차별 매출 보여줘"     → ✅
-```
-
-### 마무리
-
-```
-C: 화면 녹화 (라이브 데모 실패 대비 백업 필수)
-A: git push → main 머지
-B: aidlc-docs/audit.md 확인 → 제출물 일부로 포함
-전원: 제출
+```bash
+git checkout solo/B-e2e
+git cherry-pick <A의_유효_커밋_SHA>
 ```
 
 ---
 
-## ⚠️ 리스크 방지
+## 🧭 실행 시나리오
 
-| 리스크 | 대응 |
-|--------|------|
-| Bedrock 권한 없음 | MOCK_MODE 플래그로 즉시 전환 |
-| 브랜치 충돌 | 파일 단위 책임 분리 (A=bedrock, B=prompts, C=app) |
-| 라이브 데모 실패 | 동작 영상 반드시 사전 녹화 |
-| 복잡도 과욕 | FastAPI·AgentCore·QuickSight는 OUT OF SCOPE |
+### Step 0. 공통 합의 (짧고 명확하게)
+
+- GitHub 이슈/프로젝트 보드에 목표와 Task(T1~T6) 등록
+- 데이터셋/스키마 확정
+- 평가 기준 확정 (정확도, 응답속도, 데모 안정성)
+
+### Step 1. 기준선 브랜치 생성
+
+```bash
+git checkout main
+git checkout -b init/baseline
+```
+
+- README, 데이터 경로, 기본 폴더 구조, `.kiro/steering` 기준만 반영
+- 이후 각자 분기
+
+### Step 2. 각자 1인 1팀 병렬 진행
+
+```bash
+git checkout -b solo/A-e2e
+git checkout -b solo/B-e2e
+git checkout -b solo/C-e2e
+```
+
+- 모두 동일한 최종 목표(질문→SQL→실행→차트→챗봇 응답)를 독립적으로 달성 시도
+- 중간 산출물은 자주 push하고 커밋 메시지를 작게 유지
+
+### Step 3. 교차 활용
+
+- 누구든 블로커 발생 시, 가장 앞선 브랜치의 파일/커밋을 흡수
+- 필요하면 흡수 브랜치 기반으로 새 브랜치 재시작
+
+### Step 4. 최종 통합
+
+- 데모 기준 충족 브랜치를 기준 브랜치로 선정
+- 나머지 브랜치에서 필요한 커밋만 선택 병합
+- `main`에는 검증 완료본만 머지
 
 ---
 
-## 📋 사전 준비 체크리스트 (5월 19일까지)
+## ✅ 운영 원칙
 
-- [ ] `fact_events.csv` 전처리 완료
-- [ ] DuckDB 데이터 마트 구축 및 검증
-- [ ] Few-shot NL↔SQL 매핑 10~20쌍 작성
-- [ ] GitHub 레포 생성 + 초기 구조 push
-- [ ] [aidlc-workflows](https://github.com/awslabs/aidlc-workflows) clone → `.kiro/steering/` 세팅
-- [ ] git, python, uv, aws cli v2, Node.js 설치 확인
-- [ ] 5/19 저녁 이메일 확인 (Workshop Studio 링크 + Kiro 임시 계정)
+1. **문제 공유는 빠르게, 구현은 독립적으로**
+2. **충돌 최소화보다 실험 속도 우선**
+3. **좋은 결과를 표준으로 채택** (사람 기준이 아니라 결과 기준)
+4. **모든 브랜치는 E2E 데모 가능 상태를 목표**
 
 ---
 
-## 🔗 참고 링크
+## 📋 체크리스트
 
-- [AI-DLC Workflows (awslabs)](https://github.com/awslabs/aidlc-workflows)
-- [Kiro IDE 공식](https://kiro.dev)
-- [Amazon Bedrock 콘솔](https://console.aws.amazon.com/bedrock)
+- [ ] 공통 목표/Task/데이터셋 합의 완료
+- [ ] `init/baseline` 생성 및 공유
+- [ ] 개인별 `solo/*` 브랜치 생성
+- [ ] 블로커 대응 규칙(`checkout -- file`, `cherry-pick`) 팀 내 합의
+- [ ] 최종 통합 기준(정확도/안정성/시연성) 합의
 
 ---
 
