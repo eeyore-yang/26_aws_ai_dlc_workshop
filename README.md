@@ -1,167 +1,156 @@
-# 🤖 AI 데이터 분석가 챗봇
-> AWS Summit Seoul 2026 · AI-DLC Challenge · 2026-05-20
+# AI 데이터 분석가 챗봇
+
+> AWS Summit Seoul 2026 · AI-DLC Challenge · 2026-05-20 (6h build)
+
+자연어 질문 → Bedrock Claude (Text2SQL) → DuckDB → Plotly 차트 → Streamlit 챗봇 응답
 
 ---
 
-## 📌 프로젝트 목적
+## Quick Start
 
-비전문가가 자연어로 질문하면 AI가 SQL을 생성하고, 데이터 마트를 조회하여 **차트와 함께 답변**을 돌려주는 챗봇
-
-```
-자연어 질문 → Bedrock (Text2SQL) → DuckDB 실행 → Plotly 차트 → Streamlit 챗봇 응답
-```
-
----
-
-## 🗂 공통 초기 정렬 (GitHub + 프로젝트 기준선)
-
-초기에 팀이 함께 아래 항목을 **한 번만 확정**합니다.
-
-1. 프로젝트 목적/범위 (In/Out Scope)
-2. Task 개수와 우선순위/순서
-3. 기반 데이터셋 (`fact_events.csv`)과 스키마
-4. 공통 산출물 구조 (`aidlc-docs/`, `src/`, `app.py`)
-5. 브랜치 네이밍 규칙과 병합 규칙
-
-> 핵심: 시작점은 같이 맞추고, 구현은 각자 독립적으로 빠르게 실험합니다.
-
----
-
-## 🧩 작업 단위 (공통 목표)
-
-| # | Task | 설명 |
-|---|------|------|
-| T1 | 데이터 준비 | 전처리 CSV + DuckDB 데이터 마트 구축 |
-| T2 | 프롬프트 설계 | Few-shot NL↔SQL 매핑셋 + 시스템 프롬프트 구성 |
-| T3 | Text2SQL 모듈 | Bedrock 호출 → SQL + chart_type 반환 |
-| T4 | SQL 실행 레이어 | DuckDB SQL 실행 → DataFrame 반환 |
-| T5 | 차트 생성 모듈 | chart_type별 Plotly 시각화 |
-| T6 | Streamlit 챗봇 UI | 텍스트·차트·테이블 통합 응답 |
-
----
-
-## 🚀 협업 방식 변경: 3인 1팀 역할분담 → 1인 1팀 병렬 개발
-
-기존 방식에서는 역할 경계에서 충돌이 발생하거나, 특정 인원만 Kiro Pro+ 경험이 깊어질 위험이 있었습니다.
-그래서 다음 방식으로 전환합니다.
-
-- **기존**: A/B/C 역할을 고정 분담해서 한 기능씩 나눔
-- **변경**: 각자 동일 목표를 가진 **독립 실행 브랜치**에서 end-to-end로 진행
-
-### 왜 이 방식인가?
-
-- 병목 구간(특정 담당자 대기)이 줄어듦
-- 각자 전체 파이프라인 경험 축적 가능
-- 한 브랜치가 막히면, 다른 브랜치 성과를 즉시 흡수 가능
-- 충돌은 “역할 경계”가 아니라 “검증된 결과물” 중심으로 해결 가능
-
----
-
-## 🌿 브랜치 전략 (1인 1팀 병렬)
-
-```
-main
- └─ init/baseline                # 공통 기준선(목표/태스크/데이터셋 확정)
-     ├─ solo/A-e2e               # A의 독립 구현 브랜치
-     ├─ solo/B-e2e               # B의 독립 구현 브랜치
-     └─ solo/C-e2e               # C의 독립 구현 브랜치
-```
-
-### 브랜치 네이밍 규칙
-
-- 개인 실험: `solo/<name>-<focus>`
-- 다른 브랜치 성과 흡수 후 재시작: `solo/<name>-from-<source>`
-- 빠른 핫픽스: `hotfix/<topic>`
-
-예시:
-- `solo/A-e2e`
-- `solo/B-prompt-first`
-- `solo/C-from-A`
-
----
-
-## 🔁 막혔을 때 운영 규칙 (핵심)
-
-### 1) 다른 브랜치의 특정 파일만 가져오기
+### 1. aws-aidlc-rules 설치 (첫 클론 후 1회)
 
 ```bash
-git checkout solo/A-e2e -- src/bedrock_client.py
+git clone --depth 1 --branch v0.1.8 \
+  https://github.com/awslabs/aidlc-workflows.git /tmp/aidlc-workflows
+
+mkdir -p ai-data-analyst/.kiro/steering
+cp -R /tmp/aidlc-workflows/aidlc-rules/aws-aidlc-rules/. \
+  ai-data-analyst/.kiro/steering/aws-aidlc-rules/
+cp -R /tmp/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/. \
+  ai-data-analyst/.kiro/aws-aidlc-rule-details/
 ```
 
-### 2) 잘 진행되는 브랜치를 기반으로 새로 분기
+> base/setup 브랜치에는 이미 설치됨 — pull 후 바로 사용 가능.
+
+### 2. 의존성 설치 및 앱 실행
 
 ```bash
-git checkout solo/A-e2e
-git checkout -b solo/C-from-A
+cd ai-data-analyst
+pip install -r requirements.txt
+
+# 로컬 테스트 (Bedrock 없이)
+MOCK_MODE=true streamlit run src/app.py
+
+# 실제 실행
+AWS_REGION=ap-northeast-2 \
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0 \
+streamlit run src/app.py
 ```
 
-### 3) Cherry-pick으로 커밋 단위 흡수
+### 3. 데이터 마트 초기화
 
 ```bash
-git checkout solo/B-e2e
-git cherry-pick <A의_유효_커밋_SHA>
+# data/fact_events.csv 배치 후
+python src/data_executor.py
 ```
 
 ---
 
-## 🧭 실행 시나리오
+## 아키텍처
 
-### Step 0. 공통 합의 (짧고 명확하게)
-
-- GitHub 이슈/프로젝트 보드에 목표와 Task(T1~T6) 등록
-- 데이터셋/스키마 확정
-- 평가 기준 확정 (정확도, 응답속도, 데모 안정성)
-
-### Step 1. 기준선 브랜치 생성
-
-```bash
-git checkout main
-git checkout -b init/baseline
 ```
-
-- README, 데이터 경로, 기본 폴더 구조, `.kiro/steering` 기준만 반영
-- 이후 각자 분기
-
-### Step 2. 각자 1인 1팀 병렬 진행
-
-```bash
-git checkout -b solo/A-e2e
-git checkout -b solo/B-e2e
-git checkout -b solo/C-e2e
+[Streamlit UI]
+     │  자연어 질문
+     ▼
+[bedrock_client.py]  ← system_prompt.txt + few_shot_examples.yaml
+     │  {sql, chart_type, summary}
+     ▼
+[data_executor.py]   ← DuckDB (fact_events 마트)
+     │  pd.DataFrame
+     ▼
+[visualizer.py]      ← Plotly Figure (bar / line / pie)
+     ▼
+[Streamlit UI]       ← 텍스트 요약 + 차트 + 테이블
 ```
-
-- 모두 동일한 최종 목표(질문→SQL→실행→차트→챗봇 응답)를 독립적으로 달성 시도
-- 중간 산출물은 자주 push하고 커밋 메시지를 작게 유지
-
-### Step 3. 교차 활용
-
-- 누구든 블로커 발생 시, 가장 앞선 브랜치의 파일/커밋을 흡수
-- 필요하면 흡수 브랜치 기반으로 새 브랜치 재시작
-
-### Step 4. 최종 통합
-
-- 데모 기준 충족 브랜치를 기준 브랜치로 선정
-- 나머지 브랜치에서 필요한 커밋만 선택 병합
-- `main`에는 검증 완료본만 머지
 
 ---
 
-## ✅ 운영 원칙
+## 데이터 스키마 (fact_events)
 
-1. **문제 공유는 빠르게, 구현은 독립적으로**
-2. **충돌 최소화보다 실험 속도 우선**
-3. **좋은 결과를 표준으로 채택** (사람 기준이 아니라 결과 기준)
-4. **모든 브랜치는 E2E 데모 가능 상태를 목표**
+| 컬럼 | 타입 | 값 예시 |
+|------|------|---------|
+| customer_id | str | C0001 |
+| age_group | str | 10s / 20s / 30s / 40s / 50s / 60s+ |
+| gender | str | male / female / non-binary |
+| event_date | date | 2023-09-01 |
+| week_label | str | 2023-W35 |
+| event_type | str | visit / purchase |
+| product_category | str | Headphones / Earbuds / Portable_Speaker / Soundbar / Home_Audio / Wireless_Speaker |
+| sku | str | SKU-001 |
+| loyalty_member | str | yes / no |
+| amount | float | purchase만 유효, visit은 0.0 |
 
 ---
 
-## 📋 체크리스트
+## 작업 단위 및 역할 분담
 
-- [ ] 공통 목표/Task/데이터셋 합의 완료
-- [ ] `init/baseline` 생성 및 공유
-- [ ] 개인별 `solo/*` 브랜치 생성
-- [ ] 블로커 대응 규칙(`checkout -- file`, `cherry-pick`) 팀 내 합의
-- [ ] 최종 통합 기준(정확도/안정성/시연성) 합의
+| Task | 설명 | 담당 브랜치 |
+|------|------|------------|
+| T1 | fact_events.csv 전처리 + DuckDB 마트 구축 | dev/B |
+| T2 | Few-shot NL↔SQL 매핑 + 시스템 프롬프트 | dev/B |
+| T3 | Text2SQL 모듈 — Bedrock 호출 → JSON | dev/A |
+| T4 | SQL 실행 레이어 — DuckDB → DataFrame | dev/A |
+| T5 | 차트 생성 모듈 — chart_type 기반 Plotly | dev/C |
+| T6 | Streamlit 챗봇 UI — 통합 응답 | dev/C |
+
+---
+
+## 브랜치 전략
+
+```
+main                 ← 데모 합격 확인본만 머지
+ └─ base/setup       ← 공통 초기 세팅 (지금 이 브랜치)
+     ├─ dev/A        ← AI·백엔드 (T3, T4)
+     ├─ dev/B        ← 데이터·프롬프트 (T1, T2)
+     └─ dev/C        ← 프론트·차트 (T5, T6)
+```
+
+```bash
+# 각자 실행
+git checkout base/setup && git pull origin base/setup
+git checkout -b dev/A   # 또는 dev/B, dev/C
+```
+
+---
+
+## AI-DLC 운영 순서
+
+```
+[T=0]    base/setup pull → Kiro 열기 → Inception 시작 (20-30분)
+          └─ aidlc-docs/: spec.md, data-model.md, audit.md 생성
+          └─ base/setup push → 팀원 pull
+
+[T+30m]  dev/A, B, C 분기 → 각자 Construction 시작
+
+[T-1h]   블로커 발생 시 아래 규칙 적용
+
+[T=6h]   최선 브랜치 → main 머지 → 데모
+          └─ aidlc-docs/audit.md → 제출 증거
+```
+
+---
+
+## 막혔을 때 협업 규칙
+
+```bash
+# 다른 브랜치 파일만 가져오기
+git checkout dev/A -- src/bedrock_client.py
+
+# 앞선 브랜치 기반으로 재분기
+git checkout dev/A && git checkout -b dev/C-from-A
+
+# 커밋 단위 흡수
+git cherry-pick <커밋 SHA>
+```
+
+---
+
+## 완성 기준 (데모 합격선)
+
+- [ ] "지난달 카테고리별 매출은?" → bar 차트 + 수치 테이블
+- [ ] "30대 여성 전환율 추이를 보여줘" → line 차트 + 요약
+- [ ] MOCK_MODE=true 로 Bedrock 없이 동일 UI 흐름 동작
 
 ---
 
