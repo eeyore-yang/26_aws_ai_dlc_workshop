@@ -1,0 +1,8 @@
+# 데모 검증 질문 | 기대 chart_type | 검증 항목
+지난달 카테고리별 매출은?        | bar  | 6개 카테고리, amount 합계 양수
+30대 여성 전환율 추이를 보여줘   | line | conversion_rate, 날짜 오름차순
+카테고리별 전환율 비교           | bar  | 0~1 범위
+월별 전환율 추이                 | line | month + conversion_rate
+카테고리별 매출 비중             | pie  | 6개 슬라이스
+성별 구매 비중                   | pie  | 3개 슬라이스
+로열티 멤버 vs 일반 고객 매출    | bar  | yes/no 2개 행

@@ -1,0 +1,5 @@
+data/mart.duckdb
+__pycache__/
+*.pyc
+.env
+.venv/

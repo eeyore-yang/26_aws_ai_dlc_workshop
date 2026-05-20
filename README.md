@@ -1,211 +1,170 @@
-# 🤖 AI 데이터 분석가 챗봇
-> AWS Summit Seoul 2026 · AI-DLC Challenge · 2026-05-20
+# AI 데이터 분석가 챗봇
+
+> AWS Summit Seoul 2026 · AI-DLC Challenge · 2026-05-20 (6h build)
+
+자연어 질문 → Bedrock Claude (Text2SQL) → DuckDB → Plotly 차트 → Streamlit 챗봇 응답
 
 ---
 
-## 📌 프로젝트 목적
+## 개발환경 사전 요구사항
 
-비전문가가 자연어로 질문하면 AI가 SQL을 생성하고, 데이터 마트를 조회하여 **차트와 함께 답변**을 돌려주는 챗봇
+| 도구 | 용도 | 설치 |
+|------|------|------|
+| Python 3.11+ | 앱 실행 | - |
+| uv (uvx) | Kiro MCP 서버 자동 실행 | `pip install uv` 또는 [설치 가이드](https://docs.astral.sh/uv/getting-started/installation/) |
+| Node.js 18+ (npx) | Excalidraw MCP 서버 | [nodejs.org](https://nodejs.org/) |
+| Kiro IDE | AI 개발환경 + MCP 연동 | [kiro.dev](https://kiro.dev) |
 
-```
-자연어 질문 → Bedrock (Text2SQL) → DuckDB 실행 → Plotly 차트 → Streamlit 챗봇 응답
-```
-
-**예시 질문**
-- "지난주 20대 여성의 구매 전환율 보여줘"
-- "헤드폰 카테고리 주차별 매출 추이 보여줘"
-
----
-
-## 🗂 Abstract Tasks
-
-| # | Task | 설명 |
-|---|------|------|
-| T1 | 데이터 준비 | 전처리 CSV + DuckDB 데이터 마트 구축 |
-| T2 | 프롬프트 설계 | Few-shot NL↔SQL 매핑셋 + 시스템 프롬프트 구성 |
-| T3 | Text2SQL 모듈 | Bedrock 호출 → SQL + chart_type 반환 |
-| T4 | SQL 실행 레이어 | DuckDB로 SQL 실행 → DataFrame 반환 |
-| T5 | 차트 생성 모듈 | chart_type에 따라 Plotly 차트 생성 (bar/line/pie) |
-| T6 | Streamlit 챗봇 UI | 입력창 + 텍스트·차트 통합 응답 화면 |
+> `.kiro/settings/mcp.json`에 팀 공용 MCP 서버 설정이 포함되어 있습니다.
+> Kiro로 프로젝트를 열면 aws-docs, aws-knowledge, excalidraw 서버가 자동 연결됩니다.
 
 ---
 
-## 🏗 기술 스택
+## Quick Start
 
-| 레이어 | 도구 |
-|--------|------|
-| AI | Amazon Bedrock (Claude) |
-| 데이터 | DuckDB + fact_events.csv |
-| UI | Streamlit (단일 파일 앱) |
-| 차트 | Plotly Express |
-| 개발 방법론 | AI-DLC (Kiro Steering Files) |
+### 1. aws-aidlc-rules 설치 (첫 클론 후 1회)
 
----
-
-## 🔄 AI-DLC Workflows 매핑
-
-AI-DLC는 **Inception → Construction → Operations** 3단계로 구성된 개발 방법론입니다.  
-Kiro가 `.kiro/steering/` 의 rules 파일을 읽고 각 단계를 안내합니다.
-
-```
-AI-DLC 단계       우리 프로젝트
-────────────────────────────────────────────────────
-Inception         "Using AI-DLC, 챗봇 만들래"
-(기획·설계)        → Kiro가 요구사항 질문
-                  → 우리가 답변 (이미 결정된 내용)
-                  → aidlc-docs/ 에 자동 산출물 생성
-                    ├── requirements.md
-                    ├── design.md
-                    ├── aidlc-state.md
-                    └── audit.md
-
-Construction      T1 ~ T6 각각에 대해 Kiro가 코드 생성
-(구현·테스트)      → 단계마다 팀원이 승인
-                  → aidlc-docs/audit.md 에 전 과정 자동 기록
-
-Operations        Streamlit 로컬 실행 = 완료
-(배포)            (6시간 내에서는 간략히)
-────────────────────────────────────────────────────
-```
-
-> **핵심**: `aidlc-docs/` 에 쌓이는 기록이 "AI-DLC 활용도"의 증거가 됩니다.
-
----
-
-## 👥 팀 역할
-
-| 역할 | 담당 Tasks |
-|------|-----------|
-| A — AI·백엔드 | T3 (Text2SQL), T4 (SQL 실행), Bedrock 연동 |
-| B — 데이터 | T1 (데이터 마트), T2 (프롬프트·Few-shot) |
-| C — 프론트 | T5 (차트), T6 (Streamlit UI) |
-
----
-
-## 🌿 브랜치 전략
-
-```
-main          ← 동작 확인된 코드만 머지
- └─ base      ← 공통 초기 세팅 (데이터, 문서, Kiro rules)
-     ├─ dev/A ← A 독립 구현
-     ├─ dev/B ← B 독립 구현
-     └─ dev/C ← C 독립 구현
-```
-
-**막혔을 때**
 ```bash
-# 다른 사람 브랜치에서 파일 가져오기
+git clone --depth 1 --branch v0.1.8 \
+  https://github.com/awslabs/aidlc-workflows.git /tmp/aidlc-workflows
+
+mkdir -p ai-data-analyst/.kiro/steering
+cp -R /tmp/aidlc-workflows/aidlc-rules/aws-aidlc-rules/. \
+  ai-data-analyst/.kiro/steering/aws-aidlc-rules/
+cp -R /tmp/aidlc-workflows/aidlc-rules/aws-aidlc-rule-details/. \
+  ai-data-analyst/.kiro/aws-aidlc-rule-details/
+```
+
+> base/setup 브랜치에는 이미 설치됨 — pull 후 바로 사용 가능.
+
+### 2. 의존성 설치 및 앱 실행
+
+```bash
+cd ai-data-analyst
+pip install -r requirements.txt
+
+# 로컬 테스트 (Bedrock 없이)
+MOCK_MODE=true streamlit run src/app.py
+
+# 실제 실행
+AWS_REGION=ap-northeast-2 \
+BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0 \
+streamlit run src/app.py
+```
+
+### 3. 데이터 마트 초기화
+
+```bash
+# data/fact_events.csv 배치 후
+python src/data_executor.py
+```
+
+---
+
+## 아키텍처
+
+```
+[Streamlit UI]
+     │  자연어 질문
+     ▼
+[bedrock_client.py]  ← system_prompt.txt + few_shot_examples.yaml
+     │  {sql, chart_type, summary}
+     ▼
+[data_executor.py]   ← DuckDB (fact_events 마트)
+     │  pd.DataFrame
+     ▼
+[visualizer.py]      ← Plotly Figure (bar / line / pie)
+     ▼
+[Streamlit UI]       ← 텍스트 요약 + 차트 + 테이블
+```
+
+---
+
+## 데이터 스키마 (fact_events)
+
+| 컬럼 | 타입 | 값 예시 |
+|------|------|---------|
+| customer_id | str | C0001 |
+| age_group | str | 10s / 20s / 30s / 40s / 50s / 60s+ |
+| gender | str | male / female / non-binary |
+| event_date | date | 2023-09-01 |
+| week_label | str | 2023-W35 |
+| event_type | str | visit / purchase |
+| product_category | str | Headphones / Earbuds / Portable_Speaker / Soundbar / Home_Audio / Wireless_Speaker |
+| sku | str | SKU-001 |
+| loyalty_member | str | yes / no |
+| amount | float | purchase만 유효, visit은 0.0 |
+
+---
+
+## 작업 단위 및 역할 분담
+
+| Task | 설명 | 담당 브랜치 |
+|------|------|------------|
+| T1 | fact_events.csv 전처리 + DuckDB 마트 구축 | dev/B |
+| T2 | Few-shot NL↔SQL 매핑 + 시스템 프롬프트 | dev/B |
+| T3 | Text2SQL 모듈 — Bedrock 호출 → JSON | dev/A |
+| T4 | SQL 실행 레이어 — DuckDB → DataFrame | dev/A |
+| T5 | 차트 생성 모듈 — chart_type 기반 Plotly | dev/C |
+| T6 | Streamlit 챗봇 UI — 통합 응답 | dev/C |
+
+---
+
+## 브랜치 전략
+
+```
+main                 ← 데모 합격 확인본만 머지
+ └─ base/setup       ← 공통 초기 세팅 (지금 이 브랜치)
+     ├─ dev/A        ← AI·백엔드 (T3, T4)
+     ├─ dev/B        ← 데이터·프롬프트 (T1, T2)
+     └─ dev/C        ← 프론트·차트 (T5, T6)
+```
+
+```bash
+# 각자 실행
+git checkout base/setup && git pull origin base/setup
+git checkout -b dev/A   # 또는 dev/B, dev/C
+```
+
+---
+
+## AI-DLC 운영 순서
+
+```
+[T=0]    base/setup pull → Kiro 열기 → Inception 시작 (20-30분)
+          └─ aidlc-docs/: spec.md, data-model.md, audit.md 생성
+          └─ base/setup push → 팀원 pull
+
+[T+30m]  dev/A, B, C 분기 → 각자 Construction 시작
+
+[T-1h]   블로커 발생 시 아래 규칙 적용
+
+[T=6h]   최선 브랜치 → main 머지 → 데모
+          └─ aidlc-docs/audit.md → 제출 증거
+```
+
+---
+
+## 막혔을 때 협업 규칙
+
+```bash
+# 다른 브랜치 파일만 가져오기
 git checkout dev/A -- src/bedrock_client.py
 
-# 다른 사람 브랜치 기반으로 재출발
-git checkout -b dev/C-from-A origin/dev/A
+# 앞선 브랜치 기반으로 재분기
+git checkout dev/A && git checkout -b dev/C-from-A
+
+# 커밋 단위 흡수
+git cherry-pick <커밋 SHA>
 ```
 
 ---
 
-## 🎬 당일 시뮬레이션
+## 완성 기준 (데모 합격선)
 
-### 빌드 시작 직후
-
-```
-A  → Kiro Inception 진행 (20-30분)
-B  → fact_events.csv 로드 확인, DuckDB 마트 실행 검증
-C  → streamlit run app.py 기본 동작 확인
-```
-
-### A가 Inception 완료 후
-
-```bash
-git add aidlc-docs/
-git commit -m "feat: AI-DLC inception artifacts"
-git push origin base
-```
-
-```
-B, C → git pull origin base
-      → git checkout -b dev/B (또는 dev/C)
-      → 각자 Kiro와 Construction 시작
-```
-
-### Construction 병렬 진행
-
-**A의 Kiro 대화 예시**
-```
-"Using AI-DLC, implement bedrock_client.py.
- It should call Claude via boto3, parse the response as JSON
- containing sql and chart_type fields.
- Include MOCK_MODE fallback when Bedrock is unavailable."
-→ Kiro: 코드 생성 → A 승인 → audit.md 자동 기록
-```
-
-**B의 Kiro 대화 예시**
-```
-"Using AI-DLC, create system_prompt.txt and few_shot_examples.yaml.
- Schema: [data_schema.md 내용]
- Few-shot 10쌍 포함. 자연어→SQL 변환 정확도 최우선."
-→ Kiro: 생성 → B 승인 → 테스트 스크립트도 생성 요청
-```
-
-**C의 Kiro 대화 예시**
-```
-"Using AI-DLC, build app.py as a Streamlit chatbot.
- st.chat_message must display text + plotly chart + dataframe.
- visualizer.py handles bar/line/pie based on chart_type."
-→ Kiro: 생성 → C 승인 → streamlit run 으로 확인
-```
-
-### 통합
-
-```
-# 가장 진행이 빠른 브랜치(A)에 나머지 머지
-git checkout dev/A
-git merge dev/B
-git merge dev/C
-
-# E2E 데모 쿼리 검증
-"지난주 20대 여성의 구매 전환율 보여줘"  → ✅
-"헤드폰 카테고리 주차별 매출 보여줘"     → ✅
-```
-
-### 마무리
-
-```
-C: 화면 녹화 (라이브 데모 실패 대비 백업 필수)
-A: git push → main 머지
-B: aidlc-docs/audit.md 확인 → 제출물 일부로 포함
-전원: 제출
-```
-
----
-
-## ⚠️ 리스크 방지
-
-| 리스크 | 대응 |
-|--------|------|
-| Bedrock 권한 없음 | MOCK_MODE 플래그로 즉시 전환 |
-| 브랜치 충돌 | 파일 단위 책임 분리 (A=bedrock, B=prompts, C=app) |
-| 라이브 데모 실패 | 동작 영상 반드시 사전 녹화 |
-| 복잡도 과욕 | FastAPI·AgentCore·QuickSight는 OUT OF SCOPE |
-
----
-
-## 📋 사전 준비 체크리스트 (5월 19일까지)
-
-- [ ] `fact_events.csv` 전처리 완료
-- [ ] DuckDB 데이터 마트 구축 및 검증
-- [ ] Few-shot NL↔SQL 매핑 10~20쌍 작성
-- [ ] GitHub 레포 생성 + 초기 구조 push
-- [ ] [aidlc-workflows](https://github.com/awslabs/aidlc-workflows) clone → `.kiro/steering/` 세팅
-- [ ] git, python, uv, aws cli v2, Node.js 설치 확인
-- [ ] 5/19 저녁 이메일 확인 (Workshop Studio 링크 + Kiro 임시 계정)
-
----
-
-## 🔗 참고 링크
-
-- [AI-DLC Workflows (awslabs)](https://github.com/awslabs/aidlc-workflows)
-- [Kiro IDE 공식](https://kiro.dev)
-- [Amazon Bedrock 콘솔](https://console.aws.amazon.com/bedrock)
+- [ ] "지난달 카테고리별 매출은?" → bar 차트 + 수치 테이블
+- [ ] "30대 여성 전환율 추이를 보여줘" → line 차트 + 요약
+- [ ] MOCK_MODE=true 로 Bedrock 없이 동일 UI 흐름 동작
 
 ---
 

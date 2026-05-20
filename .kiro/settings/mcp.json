@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "aws-knowledge-mcp-server": {
+      "url": "https://knowledge-mcp.global.api.aws",
+      "type": "http",
+      "disabled": false
+    },
+    "aws-docs": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false
+    },
+    "excalidraw": {
+      "type": "local",
+      "command": "npx",
+      "args": ["-y", "@scofieldfree/excalidraw-mcp"],
+      "disabled": false
+    }
+  }
+}
