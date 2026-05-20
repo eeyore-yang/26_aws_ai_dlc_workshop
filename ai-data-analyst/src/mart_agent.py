@@ -142,25 +142,46 @@ def _generate_view_name(intent_result: Dict[str, Any]) -> str:
     if dims:
         # 차원명을 조합하여 뷰 이름 생성
         name_parts = []
+        mapping = {
+            "연령대": "age",
+            "나이": "age",
+            "성별": "gender",
+            "제품": "product",
+            "제품유형": "product",
+            "제품 유형": "product",
+            "월": "monthly",
+            "월간": "monthly",
+            "분기": "quarterly",
+            "결제": "payment",
+            "결제수단": "payment",
+            "결제 수단": "payment",
+            "배송": "shipping",
+            "배송유형": "shipping",
+            "배송 유형": "shipping",
+            "로열티": "loyalty",
+            "고객": "customer",
+            "고객 세그먼트": "segment",
+            "주문": "order",
+            "평점": "rating",
+            "시간": "time",
+        }
         for d in dims[:3]:  # 최대 3개 차원만 이름에 포함
-            # 한글을 영문으로 간단 매핑
-            mapping = {
-                "연령대": "age",
-                "나이": "age",
-                "성별": "gender",
-                "제품": "product",
-                "제품유형": "product",
-                "월": "monthly",
-                "월간": "monthly",
-                "분기": "quarterly",
-                "결제": "payment",
-                "배송": "shipping",
-                "로열티": "loyalty",
-                "고객": "customer",
-            }
-            mapped = mapping.get(d, d.lower().replace(" ", "_"))
+            mapped = mapping.get(d, None)
+            if not mapped:
+                # 영문이면 그대로, 한글이면 generic 이름
+                if d.isascii():
+                    mapped = d.lower().replace(" ", "_")
+                else:
+                    mapped = "dim"
             name_parts.append(mapped)
-        return "mart_" + "_".join(name_parts)
+        # 중복 제거
+        seen = set()
+        unique_parts = []
+        for p in name_parts:
+            if p not in seen:
+                seen.add(p)
+                unique_parts.append(p)
+        return "mart_" + "_".join(unique_parts)
     return "mart_custom_analysis"
 
 

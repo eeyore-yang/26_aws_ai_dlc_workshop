@@ -130,6 +130,22 @@ def _execute_chart_code(code: str, data_csv: str) -> Optional[bytes]:
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
         import pandas as pd
+        from io import StringIO, BytesIO
+
+        # pd.StringIO 호환성 패치 (일부 LLM이 pd.StringIO를 사용)
+        if not hasattr(pd, "StringIO"):
+            pd.StringIO = StringIO
+
+        # matplotlib 스타일 호환성: 없는 스타일은 무시
+        _original_style_use = plt.style.use
+
+        def _safe_style_use(style):
+            try:
+                _original_style_use(style)
+            except OSError:
+                pass  # 스타일 없으면 기본 스타일 사용
+
+        plt.style.use = _safe_style_use
 
         buf = io.BytesIO()
         local_ns = {
@@ -138,7 +154,10 @@ def _execute_chart_code(code: str, data_csv: str) -> Optional[bytes]:
             "io": io,
             "buf": buf,
             "data_csv": data_csv,
+            "StringIO": StringIO,
+            "BytesIO": BytesIO,
         }
+
         exec(code, {"__builtins__": __builtins__}, local_ns)  # noqa: S102
 
         buf = local_ns.get("buf", buf)
@@ -146,6 +165,7 @@ def _execute_chart_code(code: str, data_csv: str) -> Optional[bytes]:
             plt.savefig(buf, format="png", dpi=150, bbox_inches="tight")
 
         plt.close("all")
+        plt.style.use = _original_style_use
         buf.seek(0)
         return buf.read()
     except Exception:

@@ -45,13 +45,13 @@
 - [x] NFR Design (SKIPPED)
 - [x] Infrastructure Design (SKIPPED — 별도 스크립트 관리)
 - [x] Code Generation (COMPLETED)
-- [ ] Build and Test (NEXT)
+- [x] Build and Test (COMPLETED)
 
 ### 🟡 OPERATIONS PHASE
-- [ ] Operations (PLACEHOLDER)
+- [ ] Operations (NEXT)
 
 ## Current Status
-- **Lifecycle Phase**: CONSTRUCTION
-- **Current Stage**: Build and Test
-- **Previous Stage**: Code Generation (COMPLETED)
-- **Status**: Ready to proceed to Build and Test
+- **Lifecycle Phase**: OPERATIONS
+- **Current Stage**: Operations
+- **Previous Stage**: Build and Test (COMPLETED)
+- **Status**: Ready to proceed to Operations

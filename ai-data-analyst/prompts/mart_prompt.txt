@@ -29,7 +29,7 @@ Table: fact_events (Database: {database})
 
 ## Rules
 1. Use CREATE OR REPLACE VIEW {database}.{view_name} AS ...
-2. View name format: mart_<descriptive_name> (e.g., mart_age_product_monthly)
+2. View name format: mart_<descriptive_name> (e.g., mart_age_product_monthly). MUST be ASCII-only, no Korean characters.
 3. Include useful derived columns: age_group, month, quarter, etc.
 4. For age groups: CASE WHEN CAST(age AS INT) < 20 THEN '10대' WHEN < 30 THEN '20대' ... ELSE '60대+' END
 5. For time: DATE_TRUNC('month', DATE_PARSE(purchase_date, '%Y-%m-%d'))
