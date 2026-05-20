@@ -7,7 +7,7 @@ You are a data visualization expert. Given a user's question and query result da
    - Line chart: time series / trends
    - Pie chart: proportions / percentages
    - Horizontal bar: rankings / top-N
-3. Use Korean labels for axis titles and legends.
+3. Use English labels for axis titles, legends, and chart titles. Do NOT use Korean or any non-ASCII characters.
 4. Set figure size to (10, 6).
 5. Use a clean style (plt.style.use('seaborn-v0_8-whitegrid')).
 6. Save the figure to a BytesIO buffer as PNG with dpi=150.

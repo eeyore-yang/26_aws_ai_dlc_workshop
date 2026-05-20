@@ -14,7 +14,7 @@ TEXT2SQL_MODEL_ID: str = os.getenv(
     "BEDROCK_TEXT2SQL_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
 )
 CHART_MODEL_ID: str = os.getenv(
-    "BEDROCK_CHART_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
+    "BEDROCK_CHART_MODEL_ID", "qwen.qwen3-coder-next"
 )
 DESCRIPTION_MODEL_ID: str = os.getenv(
     "BEDROCK_DESCRIPTION_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
@@ -25,23 +25,46 @@ _client = boto3.client("bedrock-runtime", region_name=REGION)
 
 
 def _invoke_model(model_id: str, prompt: str, max_tokens: int = MAX_TOKENS) -> str:
-    """Bedrock Claude 모델을 호출하고 텍스트 응답을 반환한다."""
-    body = json.dumps(
-        {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": max_tokens,
-            "temperature": 0.0,
-            "messages": [{"role": "user", "content": prompt}],
-        }
-    )
-    response = _client.invoke_model(
-        modelId=model_id,
-        contentType="application/json",
-        accept="application/json",
-        body=body,
-    )
-    result = json.loads(response["body"].read())
-    return result["content"][0]["text"]
+    """Bedrock 모델을 호출하고 텍스트 응답을 반환한다.
+    
+    Anthropic과 Qwen 모델의 요청/응답 형식을 자동 분기한다.
+    """
+    if "anthropic" in model_id:
+        body = json.dumps(
+            {
+                "anthropic_version": "bedrock-2023-05-31",
+                "max_tokens": max_tokens,
+                "temperature": 0.0,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+        )
+        response = _client.invoke_model(
+            modelId=model_id,
+            contentType="application/json",
+            accept="application/json",
+            body=body,
+        )
+        result = json.loads(response["body"].read())
+        return result["content"][0]["text"]
+    else:
+        # Qwen / OpenAI-compatible format
+        body = json.dumps(
+            {
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens,
+                "temperature": 0.0,
+            }
+        )
+        response = _client.invoke_model(
+            modelId=model_id,
+            contentType="application/json",
+            accept="application/json",
+            body=body,
+        )
+        result = json.loads(response["body"].read())
+        if "choices" in result:
+            return result["choices"][0]["message"]["content"]
+        return result.get("output", {}).get("text", str(result))
 
 
 def ask_text2sql(question: str, prompt: str) -> Dict[str, Any]:
