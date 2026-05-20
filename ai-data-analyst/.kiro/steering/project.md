@@ -24,24 +24,29 @@ LLM이 차트 이미지를 직접 생성하여 텍스트 요약과 함께 돌려
 ## fact_events.csv 스키마
 | 컬럼 | 타입 | 설명 |
 |------|------|------|
-| customer_id | str | 고객 식별자 |
-| age_group | str | 10s / 20s / 30s / 40s / 50s / 60s+ |
-| gender | str | male / female / non-binary |
-| event_date | date | YYYY-MM-DD |
-| week_label | str | YYYY-WNN |
-| event_type | str | visit / purchase |
-| product_category | str | Headphones / Earbuds / Portable_Speaker / Soundbar / Home_Audio / Wireless_Speaker |
-| sku | str | 상품 코드 |
-| loyalty_member | str | yes / no |
-| amount | float | purchase만 유효, visit은 0.0 |
+| Customer ID | int | 고객 식별자 |
+| Age | int | 고객 나이 |
+| Gender | str | Male / Female |
+| Loyalty Member | str | Yes / No (시간에 따라 변동) |
+| Product Type | str | Smartphone / Tablet / Laptop / Smartwatch / Headphones |
+| SKU | str | SKU1001~SKU1005 |
+| Rating | int | 1~5 (상품 평점, null 없음) |
+| Order Status | str | Completed / Cancelled |
+| Payment Method | str | Credit Card / Paypal / Cash / Debit Card |
+| Total Price | float | 주문 총액 |
+| Unit Price | float | 단가 |
+| Quantity | int | 수량 |
+| Purchase Date | date | YYYY-MM-DD |
+| Shipping Type | str | Standard / Express / Overnight |
+| Add-ons Purchased | str | 부가 상품 (comma-separated or empty) |
+| Add-on Total | float | 부가 상품 금액 |
 
-## 전환율 공식
-conversion_rate = COUNT(*) FILTER (WHERE event_type='purchase')
-                / NULLIF(COUNT(*) FILTER (WHERE event_type='visit'), 0)
+## 취소율 공식
+cancel_rate = COUNT(CASE WHEN order_status='Cancelled' THEN 1 END) * 1.0 / COUNT(*)
 
 ## 완성 기준
-1. "지난달 카테고리별 매출은?" → LLM 차트 이미지 + 수치 테이블 + 한국어 설명
-2. "30대 여성 전환율 추이를 보여줘" → LLM 차트 이미지 + 한국어 설명
+1. "제품 유형별 총 매출을 보여줘" → LLM 차트 이미지 + 수치 테이블 + 한국어 설명
+2. "연령대별 평균 구매 금액은?" → LLM 차트 이미지 + 한국어 설명
 
 ## 빌드 제약
 - 총 6시간 (AWS Summit Seoul 2026-05-20)

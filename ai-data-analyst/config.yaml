@@ -1,0 +1,24 @@
+# AI 데이터 분석가 챗봇 — 설정 파일
+
+aws:
+  region: us-east-1
+
+bedrock:
+  text2sql_model_id: us.anthropic.claude-sonnet-4-20250514-v1:0
+  chart_model_id: us.anthropic.claude-sonnet-4-20250514-v1:0
+  description_model_id: us.anthropic.claude-sonnet-4-20250514-v1:0
+  max_tokens: 4096
+  temperature: 0.0
+
+athena:
+  database: aidlc_workshop
+  workgroup: primary
+  output_location: s3://aidlc-workshop-athena-results-251165958261/query-results/
+
+s3:
+  data_bucket: aidlc-workshop-data-251165958261
+  data_prefix: fact_events/
+
+glue:
+  database: aidlc_workshop
+  table_name: fact_events

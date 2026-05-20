@@ -206,3 +206,44 @@ MOCK_MODE는 Bedrock 미연결 시 UI 흐름 테스트용이었으나, 2-모델 
 **Context**: Application Design completed. Awaiting approval.
 
 ---
+
+## CONSTRUCTION - Code Generation
+**Timestamp**: 2026-05-20T10:10:00Z
+**User Input**: "코더 모델을 사용해서 code generation을 진행해줘"
+**AI Response**: Code Generation Part 1 (Planning) + Part 2 (Generation) completed in single pass.
+- Generated 11 files total:
+  - config.yaml (환경 설정)
+  - prompts/system_prompt.txt (실제 CSV 스키마 반영)
+  - prompts/few_shot_examples.yaml (10개 예시, 실제 컬럼 기반)
+  - prompts/chart_prompt.txt (Model-2 프롬프트)
+  - prompts/description_prompt.txt (Model-3 프롬프트)
+  - src/query_parser.py (프롬프트 조립)
+  - src/bedrock_client.py (3-모델 호출)
+  - src/data_executor.py (Athena 실행)
+  - src/visualizer.py (차트+설명 래퍼)
+  - src/app.py (Streamlit UI + 파이프라인)
+  - requirements.txt (의존성 업데이트)
+**Context**: Code Generation completed. All 12 plan steps marked [x].
+
+---
+
+## Documentation Correction (ADR-005)
+**Timestamp**: 2026-05-20T15:20:00Z
+**Decision**: 문서 정정 — 실제 구현과 문서 불일치 해소
+**Status**: Accepted
+
+### 정정 항목
+1. 리전: ap-northeast-2 → us-east-1
+2. 모델 ID: claude-3-5-sonnet-v2 (EOL) → us.anthropic.claude-sonnet-4-20250514-v1:0
+3. CSV 스키마: 구 스키마(event_type 기반) → 실제 CSV(전자제품 주문 데이터)
+4. 차트 생성: "LLM이 직접 이미지 생성" → "LLM이 matplotlib 코드 생성 → 로컬 실행"
+5. OUT OF SCOPE: matplotlib 제거 (LLM 코드 실행 도구로 허용)
+6. Athena 제약: OpenCSVSerde 모든 컬럼 STRING, CAST 필수 추가
+7. 전환율 공식 → 취소율 공식으로 변경
+8. 완성 기준: 실제 데이터에 맞는 질문으로 교체
+
+### 영향
+- 코드 변경 없음 (이미 올바르게 구현됨)
+- 문서만 현실에 맞춤
+
+---

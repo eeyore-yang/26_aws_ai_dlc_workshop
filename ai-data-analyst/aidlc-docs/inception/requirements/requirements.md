@@ -27,14 +27,15 @@
 
 ### FR-3: 데이터 마트
 - fact_events.csv (약 2만 행)를 S3에 업로드한다
-- Glue Catalog에 fact_events 테이블 스키마를 등록한다
-- 스키마: customer_id, age_group, gender, event_date, week_label, event_type, product_category, sku, loyalty_member, amount
+- Glue Catalog에 fact_events 테이블 스키마를 등록한다 (OpenCSVSerde, 모든 컬럼 STRING)
+- 스키마: customer_id, age, gender, loyalty_member, product_type, sku, rating, order_status, payment_method, total_price, unit_price, quantity, purchase_date, shipping_type, add_ons_purchased, add_on_total
+- SQL에서 숫자 컬럼 사용 시 CAST 필수 (예: CAST(total_price AS DOUBLE))
 
 ### FR-4: 차트 생성 (Model-2)
 - Athena 쿼리 결과(DataFrame)를 Bedrock Model-2에 전달한다
-- Model-2가 데이터를 분석하여 적절한 차트 이미지를 직접 생성한다
-- 생성된 차트 이미지(base64 또는 바이너리)를 다음 단계(Model-3)에 전달한다
-- Plotly 등 로컬 차트 라이브러리는 사용하지 않는다
+- Model-2가 matplotlib 코드를 생성하고, 로컬에서 실행하여 차트 이미지를 생성한다
+- 생성된 차트 이미지(PNG bytes)를 다음 단계(Model-3)에 전달한다
+- matplotlib은 LLM 코드 실행 도구로만 사용 (사람이 직접 차트 코드를 작성하지 않음)
 
 ### FR-5: Description 작성 (Model-3)
 - Athena 쿼리 결과 + Model-2가 생성한 차트 이미지를 함께 Bedrock Model-3에 전달한다
@@ -71,18 +72,18 @@
 - app.py: UI 레이어만 (비즈니스 로직 없음)
 
 ### NFR-4: 환경 변수
-- AWS_REGION=ap-northeast-2
-- BEDROCK_TEXT2SQL_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
-- BEDROCK_CHART_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
-- BEDROCK_DESCRIPTION_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+- AWS_DEFAULT_REGION=us-east-1
+- BEDROCK_TEXT2SQL_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
+- BEDROCK_CHART_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
+- BEDROCK_DESCRIPTION_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
 - EXECUTOR_MODE=athena
 
 ---
 
 ## Acceptance Criteria
 
-1. "지난달 카테고리별 매출은?" → LLM 생성 차트 이미지 + 수치 테이블 + Model-3 한국어 설명
-2. "30대 여성 전환율 추이를 보여줘" → LLM 생성 차트 이미지 + Model-3 한국어 설명
+1. "제품 유형별 총 매출을 보여줘" → LLM 생성 차트 이미지 + 수치 테이블 + Model-3 한국어 설명
+2. "연령대별 평균 구매 금액은?" → LLM 생성 차트 이미지 + Model-3 한국어 설명
 
 ---
 
@@ -114,4 +115,4 @@
 - Docker / 컨테이너 배포
 - 로컬 데이터베이스 (DuckDB, SQLite 등)
 - 외부 DB (RDS, Redshift 등)
-- Plotly / Matplotlib 등 로컬 차트 라이브러리
+- Plotly 등 인터랙티브 차트 라이브러리 (matplotlib은 LLM 코드 실행용으로 허용)

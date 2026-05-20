@@ -19,7 +19,7 @@
 - Docker / 컨테이너 배포
 - 로컬 데이터베이스 (DuckDB, SQLite 등)
 - 외부 DB 연결 (RDS, Redshift 등)
-- Plotly / Matplotlib 등 로컬 차트 라이브러리
+- Plotly 등 인터랙티브 차트 라이브러리 (matplotlib은 LLM 코드 실행용으로 허용)
 
 ## 코드 규칙
 - Python 3.11+
@@ -32,11 +32,12 @@
 - SQL 실행 엔진은 Athena로 고정한다
 - 데이터 파일은 S3에 저장한다
 - 테이블 스키마는 Glue Catalog로 관리한다
+- Athena 테이블은 OpenCSVSerde (모든 컬럼 STRING) — SQL에서 CAST 필수
 - 로컬 데이터베이스(DuckDB, SQLite 등)는 사용하지 않는다
 
 ## 환경 변수
-AWS_REGION=ap-northeast-2
-BEDROCK_TEXT2SQL_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
-BEDROCK_CHART_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
-BEDROCK_DESCRIPTION_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+AWS_DEFAULT_REGION=us-east-1
+BEDROCK_TEXT2SQL_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
+BEDROCK_CHART_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
+BEDROCK_DESCRIPTION_MODEL_ID=us.anthropic.claude-sonnet-4-20250514-v1:0
 EXECUTOR_MODE=athena

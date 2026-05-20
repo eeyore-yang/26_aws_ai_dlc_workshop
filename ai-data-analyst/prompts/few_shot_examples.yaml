@@ -1,54 +1,40 @@
 few_shot_examples:
-  - question: "월별 전체 매출 추이를 보여줘"
+  - question: "제품 유형별 총 매출을 보여줘"
     output:
-      sql: "SELECT DATE_TRUNC('month', event_date) AS month, SUM(amount) AS revenue FROM fact_events WHERE event_type='purchase' GROUP BY 1 ORDER BY 1"
-      chart_type: line
-      summary: "월별 누적 매출 추이를 보여줍니다."
+      sql: "SELECT product_type, SUM(CAST(total_price AS DOUBLE)) AS revenue FROM fact_events WHERE order_status='Completed' GROUP BY product_type ORDER BY revenue DESC"
 
-  - question: "카테고리별 총 매출 비교"
+  - question: "월별 매출 추이를 보여줘"
     output:
-      sql: "SELECT product_category, SUM(amount) AS revenue FROM fact_events WHERE event_type='purchase' GROUP BY product_category ORDER BY revenue DESC"
-      chart_type: bar
-      summary: "카테고리별 총 매출을 비교합니다."
+      sql: "SELECT DATE_TRUNC('month', DATE_PARSE(purchase_date, '%Y-%m-%d')) AS month, SUM(CAST(total_price AS DOUBLE)) AS revenue FROM fact_events WHERE order_status='Completed' GROUP BY 1 ORDER BY 1"
 
-  - question: "카테고리별 전환율은?"
+  - question: "성별 구매 비중은?"
     output:
-      sql: "SELECT product_category, ROUND(COUNT(*) FILTER (WHERE event_type='purchase') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE event_type='visit'), 0), 4) AS conversion_rate FROM fact_events GROUP BY product_category ORDER BY conversion_rate DESC"
-      chart_type: bar
-      summary: "카테고리별 전환율(구매수/방문수)을 비교합니다."
+      sql: "SELECT gender, COUNT(*) AS order_count, SUM(CAST(total_price AS DOUBLE)) AS revenue FROM fact_events WHERE order_status='Completed' GROUP BY gender"
 
-  - question: "월별 전환율 추이를 보여줘"
+  - question: "연령대별 평균 구매 금액은?"
     output:
-      sql: "SELECT DATE_TRUNC('month', event_date) AS month, ROUND(COUNT(*) FILTER (WHERE event_type='purchase') * 1.0 / NULLIF(COUNT(*) FILTER (WHERE event_type='visit'), 0), 4) AS conversion_rate FROM fact_events GROUP BY 1 ORDER BY 1"
-      chart_type: line
-      summary: "월별 전체 전환율 추이를 보여줍니다."
+      sql: "SELECT CASE WHEN CAST(age AS INT) < 20 THEN '10대' WHEN CAST(age AS INT) < 30 THEN '20대' WHEN CAST(age AS INT) < 40 THEN '30대' WHEN CAST(age AS INT) < 50 THEN '40대' WHEN CAST(age AS INT) < 60 THEN '50대' ELSE '60대+' END AS age_group, ROUND(AVG(CAST(total_price AS DOUBLE)), 2) AS avg_purchase FROM fact_events WHERE order_status='Completed' GROUP BY 1 ORDER BY 1"
 
-  - question: "30대 여성의 카테고리별 매출"
+  - question: "로열티 멤버와 일반 고객의 매출 차이는?"
     output:
-      sql: "SELECT product_category, SUM(amount) AS revenue FROM fact_events WHERE event_type='purchase' AND age_group='30s' AND gender='female' GROUP BY product_category ORDER BY revenue DESC"
-      chart_type: bar
-      summary: "30대 여성 고객의 카테고리별 매출을 분석합니다."
+      sql: "SELECT loyalty_member, COUNT(*) AS order_count, ROUND(AVG(CAST(total_price AS DOUBLE)), 2) AS avg_revenue, SUM(CAST(total_price AS DOUBLE)) AS total_revenue FROM fact_events WHERE order_status='Completed' GROUP BY loyalty_member"
 
-  - question: "연령대별 평균 구매 금액"
+  - question: "결제 수단별 주문 건수를 보여줘"
     output:
-      sql: "SELECT age_group, ROUND(AVG(amount), 2) AS avg_purchase FROM fact_events WHERE event_type='purchase' GROUP BY age_group ORDER BY age_group"
-      chart_type: bar
-      summary: "연령대별 평균 1회 구매 금액을 비교합니다."
+      sql: "SELECT payment_method, COUNT(*) AS order_count FROM fact_events WHERE order_status='Completed' GROUP BY payment_method ORDER BY order_count DESC"
 
-  - question: "성별 구매 비중"
+  - question: "제품별 주문 취소율은?"
     output:
-      sql: "SELECT gender, COUNT(*) AS purchase_count FROM fact_events WHERE event_type='purchase' GROUP BY gender"
-      chart_type: pie
-      summary: "성별 구매 비중을 파이 차트로 보여줍니다."
+      sql: "SELECT product_type, ROUND(COUNT(CASE WHEN order_status='Cancelled' THEN 1 END) * 1.0 / COUNT(*), 4) AS cancel_rate FROM fact_events GROUP BY product_type ORDER BY cancel_rate DESC"
 
-  - question: "로열티 멤버 vs 일반 고객 매출"
+  - question: "배송 유형별 평균 주문 금액은?"
     output:
-      sql: "SELECT loyalty_member, ROUND(AVG(amount),2) AS avg_revenue, COUNT(*) AS purchase_count, ROUND(SUM(amount),2) AS total_revenue FROM fact_events WHERE event_type='purchase' GROUP BY loyalty_member"
-      chart_type: bar
-      summary: "로열티 멤버와 일반 고객의 구매 지표를 비교합니다."
+      sql: "SELECT shipping_type, ROUND(AVG(CAST(total_price AS DOUBLE)), 2) AS avg_order_amount FROM fact_events WHERE order_status='Completed' GROUP BY shipping_type ORDER BY avg_order_amount DESC"
 
-  - question: "카테고리별 매출 비중"
+  - question: "가장 많이 팔린 제품은?"
     output:
-      sql: "SELECT product_category, SUM(amount) AS revenue FROM fact_events WHERE event_type='purchase' GROUP BY product_category ORDER BY revenue DESC"
-      chart_type: pie
-      summary: "전체 매출에서 각 카테고리가 차지하는 비중을 보여줍니다."
+      sql: "SELECT product_type, SUM(CAST(quantity AS INT)) AS total_qty FROM fact_events WHERE order_status='Completed' GROUP BY product_type ORDER BY total_qty DESC LIMIT 5"
+
+  - question: "분기별 주문 건수 추이를 보여줘"
+    output:
+      sql: "SELECT DATE_TRUNC('quarter', DATE_PARSE(purchase_date, '%Y-%m-%d')) AS quarter, COUNT(*) AS order_count FROM fact_events WHERE order_status='Completed' GROUP BY 1 ORDER BY 1"
