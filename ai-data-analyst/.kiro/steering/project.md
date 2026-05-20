@@ -1,17 +1,20 @@
 # Project: AI 데이터 분석가 챗봇
 
 ## 목적
-비전문가가 자연어로 데이터 질문을 하면 AI가 SQL을 생성하고, 데이터 마트를 조회하여
+비전문가가 자연어로 데이터 질문을 하면 AI가 SQL을 생성하고, Athena로 조회하여
 차트와 텍스트 요약을 함께 돌려주는 챗봇.
 
 ## 파이프라인
-자연어 질문 → Bedrock Claude (Text2SQL + chart_type + summary) → DuckDB → Plotly 차트 → Streamlit
+자연어 질문 → Bedrock Claude (Text2SQL + chart_type + summary) → Athena → Plotly 차트 → Streamlit
 
 ## 기술 스택
 | 컴포넌트 | 기술 |
 |---------|------|
 | AI/LLM | Amazon Bedrock (Claude 3.5 Sonnet, via boto3) |
-| 데이터 | DuckDB + fact_events.csv (사전 정적 마트) |
+| Data Layer | Athena + S3 + Glue Catalog |
+| Storage | S3 |
+| Query Engine | Athena |
+| Schema Registry | Glue Catalog |
 | UI | Streamlit (app.py 단일 파일) |
 | 차트 | Plotly Express |
 | 방법론 | AI-DLC (Inception → Construction) |

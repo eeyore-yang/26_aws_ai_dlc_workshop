@@ -2,7 +2,7 @@
 
 ## IN SCOPE
 - Amazon Bedrock Claude 단일 AI 호출 (Text2SQL + chart_type + summary JSON 반환)
-- DuckDB 로컬 인메모리 실행 (fact_events.csv 기반 사전 정적 마트)
+- Athena + S3 + Glue Catalog (데이터 레이어)
 - Streamlit 단일 파일 챗봇 UI (app.py)
 - Plotly Express 차트 3종: bar / line / pie
 - MOCK_MODE 플래그: Bedrock 연결 실패 시 자동 전환
@@ -15,16 +15,24 @@
 - 사용자 인증/세션 관리
 - 다중 AI 모델 or 멀티 에이전트 구조
 - Docker / 컨테이너 배포
+- 로컬 데이터베이스 (DuckDB, SQLite 등)
 - 외부 DB 연결 (RDS, Redshift 등)
 
 ## 코드 규칙
 - Python 3.11+
 - 모든 Bedrock 호출은 bedrock_client.py 에만
-- DuckDB 연결/쿼리는 data_executor.py 에만
+- Athena 쿼리 실행은 data_executor.py 에만
 - 차트 생성은 visualizer.py 에만
 - app.py 는 UI 레이어만 (비즈니스 로직 없음)
+
+## Data Layer Constraints
+- SQL 실행 엔진은 Athena로 고정한다
+- 데이터 파일은 S3에 저장한다
+- 테이블 스키마는 Glue Catalog로 관리한다
+- 로컬 데이터베이스(DuckDB, SQLite 등)는 사용하지 않는다
 
 ## 환경 변수
 AWS_REGION=ap-northeast-2
 BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
 MOCK_MODE=false
+EXECUTOR_MODE=athena
