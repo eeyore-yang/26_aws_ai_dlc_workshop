@@ -29,7 +29,7 @@ def main() -> None:
             "연령대별 평균 구매 금액은?",
         ]
         for ex in simple_examples:
-            if st.button(ex, use_container_width=True, key=f"s_{ex}"):
+            if st.button(ex, use_container_width=True, key="s_" + ex[:10]):
                 st.session_state["pending_question"] = ex
 
         st.subheader("🏗️ 데이터 마트 생성")
@@ -39,7 +39,7 @@ def main() -> None:
             "결제수단별 배송유형별 주문 분석 마트를 생성해줘",
         ]
         for ex in mart_examples:
-            if st.button(ex, use_container_width=True, key=f"m_{ex}"):
+            if st.button(ex, use_container_width=True, key="m_" + ex[:10]):
                 st.session_state["pending_question"] = ex
 
     if "messages" not in st.session_state:
@@ -52,45 +52,58 @@ def main() -> None:
 def _render_history() -> None:
     """대화 히스토리를 렌더링한다."""
     for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if "image" in msg and msg["image"] is not None:
-                st.image(msg["image"], use_container_width=True)
-            if "dataframe" in msg:
-                st.dataframe(msg["dataframe"], use_container_width=True)
+        role = msg["role"]
+        prefix = "🧑 **You:**" if role == "user" else "🤖 **AI:**"
+        st.markdown(f"{prefix} {msg['content']}")
+        if "image" in msg and msg["image"] is not None:
+            st.image(msg["image"], use_container_width=True)
+        if "dataframe" in msg:
+            st.dataframe(msg["dataframe"], use_container_width=True)
+        st.markdown("---")
 
 
 def _handle_input() -> None:
     """사용자 입력을 처리한다."""
+    # 사이드바 버튼에서 온 질문
     question = st.session_state.pop("pending_question", None)
+
+    # 텍스트 입력
     if not question:
-        question = st.chat_input("데이터에 대해 궁금한 점을 물어보세요...")
+        with st.form("question_form", clear_on_submit=True):
+            user_input = st.text_input(
+                "질문을 입력하세요:",
+                placeholder="예: 월별 매출 추이를 보여줘",
+            )
+            submitted = st.form_submit_button("🚀 분석 시작")
+            if submitted and user_input.strip():
+                question = user_input.strip()
+
     if not question:
         return
 
+    # 사용자 메시지 저장
     st.session_state.messages.append({"role": "user", "content": question})
-    with st.chat_message("user"):
-        st.markdown(question)
+    st.markdown(f"🧑 **You:** {question}")
+    st.markdown("---")
 
-    with st.chat_message("assistant"):
-        with st.spinner("🤖 의도 분석 중..."):
-            try:
-                intent_type, context = run_mart_pipeline(question)
-            except Exception as e:
-                st.warning(f"의도 분류 실패, 기본 분석으로 진행: {e}")
-                intent_type = "simple_analysis"
-                context = {}
+    # 의도 분석
+    with st.spinner("🤖 의도 분석 중..."):
+        try:
+            intent_type, context = run_mart_pipeline(question)
+        except Exception as e:
+            st.warning(f"의도 분류 실패, 기본 분석으로 진행: {e}")
+            intent_type = "simple_analysis"
+            context = {}
 
-        if intent_type == "mart_creation":
-            _run_mart_creation(question, context)
-        else:
-            with st.spinner("분석 중..."):
-                _run_simple_analysis(question)
+    if intent_type == "mart_creation":
+        _run_mart_creation(question, context)
+    else:
+        with st.spinner("분석 중..."):
+            _run_simple_analysis(question)
 
 
 def _run_simple_analysis(question: str) -> None:
     """기존 3-모델 파이프라인 (단순 분석)."""
-    # Text2SQL
     try:
         prompt = build_prompt(question)
         result = ask_text2sql(question, prompt)
@@ -100,7 +113,6 @@ def _run_simple_analysis(question: str) -> None:
         _show_error(f"SQL 생성 실패: {e}")
         return
 
-    # Athena 실행
     try:
         validate_select_only(sql)
         df = run_query(sql)
@@ -112,7 +124,6 @@ def _run_simple_analysis(question: str) -> None:
         _show_error(f"데이터 조회 오류: {e}")
         return
 
-    # 차트 + 설명
     chart_image = _safe_chart(question, df)
     description = _safe_description(question, df, chart_image)
     _render_result(description, chart_image, df)
@@ -125,14 +136,12 @@ def _run_mart_creation(question: str, context: dict) -> None:
     mart_sql = context.get("mart_sql", "")
     analysis_prompt = context.get("analysis_prompt", "")
 
-    # 마트 생성 결과 표시
     st.success(f"🏗️ 데이터 마트 생성 완료: `{view_name}`")
     if mart_description:
         st.info(f"📋 {mart_description}")
     with st.expander("🔧 생성된 VIEW SQL", expanded=False):
         st.code(mart_sql, language="sql")
 
-    # 마트 기반 분석 SQL 생성
     try:
         result = ask_text2sql(question, analysis_prompt)
         sql = result.get("sql", "")
@@ -141,7 +150,6 @@ def _run_mart_creation(question: str, context: dict) -> None:
         _show_error(f"마트 분석 SQL 생성 실패: {e}")
         return
 
-    # Athena 실행
     try:
         validate_select_only(sql)
         df = run_query(sql)
@@ -153,33 +161,28 @@ def _run_mart_creation(question: str, context: dict) -> None:
         _show_error(f"데이터 조회 오류: {e}")
         return
 
-    # 차트 + 설명
     chart_image = _safe_chart(question, df)
     description = _safe_description(question, df, chart_image)
     _render_result(description, chart_image, df)
 
 
-def _safe_chart(question: str, df) -> Optional[bytes]:
-    """차트 생성 (실패 시 None 반환)."""
+def _safe_chart(question, df):
     try:
         return generate_chart(question, df)
     except Exception:
         return None
 
 
-def _safe_description(question: str, df, chart_image: Optional[bytes]) -> str:
-    """설명 생성 (실패 시 기본 메시지)."""
+def _safe_description(question, df, chart_image):
     try:
         return generate_description(question, df, chart_image)
     except Exception:
         return "분석 결과입니다."
 
 
-def _render_result(
-    description: str, chart_image: Optional[bytes], df: "pd.DataFrame"
-) -> None:
-    """분석 결과를 Streamlit에 렌더링한다."""
-    st.markdown(description)
+def _render_result(description, chart_image, df):
+    """분석 결과를 렌더링한다."""
+    st.markdown(f"🤖 **AI:** {description}")
 
     if chart_image:
         st.image(chart_image, use_container_width=True)
