@@ -1,9 +1,10 @@
 # 프로젝트 제약 (IN / OUT SCOPE)
 
 ## IN SCOPE
-- Amazon Bedrock 2개 모델 호출:
-  - Model-1: Text2SQL + summary JSON 반환 (자연어 처리)
-  - Model-2: 데이터 기반 차트 이미지 직접 생성 (차트 생성)
+- Amazon Bedrock 3개 모델 호출:
+  - Model-1: Text2SQL (자연어 → SQL 변환)
+  - Model-2: 차트 이미지 직접 생성 (Athena 결과 기반)
+  - Model-3: Description 작성 (Athena 결과 + 차트 이미지 취합 → 한국어 설명)
 - Athena + S3 + Glue Catalog (데이터 레이어)
 - Streamlit 단일 파일 챗봇 UI (app.py)
 - LLM 생성 차트 이미지 표시 (Plotly 미사용)
@@ -14,7 +15,7 @@
 - Amazon AgentCore / QuickSight
 - 실시간 데이터 수집 / 동적 마트 생성
 - 사용자 인증/세션 관리
-- 멀티 에이전트 구조 (2개 모델은 허용, 에이전트 오케스트레이션은 불가)
+- 멀티 에이전트 구조 (3개 모델은 허용, 에이전트 오케스트레이션은 불가)
 - Docker / 컨테이너 배포
 - 로컬 데이터베이스 (DuckDB, SQLite 등)
 - 외부 DB 연결 (RDS, Redshift 등)
@@ -37,4 +38,5 @@
 AWS_REGION=ap-northeast-2
 BEDROCK_TEXT2SQL_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
 BEDROCK_CHART_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+BEDROCK_DESCRIPTION_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
 EXECUTOR_MODE=athena

@@ -5,13 +5,14 @@
 LLM이 차트 이미지를 직접 생성하여 텍스트 요약과 함께 돌려주는 챗봇.
 
 ## 파이프라인
-자연어 질문 → Bedrock Model-1 (Text2SQL + summary) → Athena → Bedrock Model-2 (차트 이미지 생성) → Streamlit
+자연어 질문 → Bedrock Model-1 (Text2SQL) → Athena → Bedrock Model-2 (차트 이미지 생성) → Bedrock Model-3 (Athena 결과 + 차트 취합 → Description 작성) → Streamlit
 
 ## 기술 스택
 | 컴포넌트 | 기술 |
 |---------|------|
-| AI/LLM (Text2SQL) | Amazon Bedrock Model-1 (자연어→SQL+요약) |
+| AI/LLM (Text2SQL) | Amazon Bedrock Model-1 (자연어→SQL) |
 | AI/LLM (Chart Gen) | Amazon Bedrock Model-2 (데이터→차트 이미지 생성) |
+| AI/LLM (Description) | Amazon Bedrock Model-3 (데이터+차트 취합→한국어 설명 작성) |
 | Data Layer | Athena + S3 + Glue Catalog |
 | Storage | S3 |
 | Query Engine | Athena |
@@ -39,8 +40,8 @@ conversion_rate = COUNT(*) FILTER (WHERE event_type='purchase')
                 / NULLIF(COUNT(*) FILTER (WHERE event_type='visit'), 0)
 
 ## 완성 기준
-1. "지난달 카테고리별 매출은?" → LLM 생성 차트 이미지 + 수치 테이블
-2. "30대 여성 전환율 추이를 보여줘" → LLM 생성 차트 이미지 + 요약
+1. "지난달 카테고리별 매출은?" → LLM 차트 이미지 + 수치 테이블 + 한국어 설명
+2. "30대 여성 전환율 추이를 보여줘" → LLM 차트 이미지 + 한국어 설명
 
 ## 빌드 제약
 - 총 6시간 (AWS Summit Seoul 2026-05-20)

@@ -137,3 +137,72 @@ MOCK_MODE는 Bedrock 미연결 시 UI 흐름 테스트용이었으나, 2-모델 
 **Context**: Requirements Analysis stage completed. Next: Workflow Planning
 
 ---
+
+## Architecture Decision Record (ADR-004)
+**Timestamp**: 2026-05-20T09:40:00Z
+**Decision**: 3-모델 파이프라인 확정 (Text2SQL → Chart → Description)
+**Status**: Accepted
+
+### 배경
+기존 2-모델(Text2SQL+Chart)에서 Description 작성을 별도 모델로 분리. Athena 결과와 차트 이미지를 취합하여 한국어 설명을 작성하는 Model-3 추가.
+
+### 확정 파이프라인
+```
+자연어 → Model-1 (Text2SQL) → Athena → Model-2 (차트 이미지 생성) → Model-3 (데이터+차트 취합 → Description) → Streamlit
+```
+
+### 각 모델 역할
+- Model-1: 자연어 → SQL 변환만 담당 (summary 제거)
+- Model-2: Athena 결과 → 차트 이미지 생성
+- Model-3: Athena 결과 + 차트 이미지 → 한국어 설명(description) 작성
+
+### 영향 범위
+- FR-1: summary 필드 제거, SQL만 반환
+- FR-4: 차트 이미지를 Model-3에 전달하는 흐름 추가
+- FR-5: 신규 (Description 작성)
+- FR-6: UI에서 description + 차트 + 테이블 표시
+- 환경변수: BEDROCK_DESCRIPTION_MODEL_ID 추가
+
+---
+
+## INCEPTION - Workflow Planning (User Override)
+**Timestamp**: 2026-05-20T09:50:00Z
+**User Input**: "건너 뛰지 말고, inception에서 requirement analysis를 했으니, user stories부터 진행해줘."
+**AI Response**: Execution plan updated. User requested full Inception execution starting from User Stories.
+**Context**: User overrode skip recommendations. Proceeding with User Stories → Application Design → Units Generation → full Construction.
+
+---
+
+## INCEPTION - User Stories
+**Timestamp**: 2026-05-20T09:55:00Z
+**User Input**: "유저의 자연어 입력은 예시(20~30개)를 미리 만들어 사용하는 프로토 타입 프로젝트야. data/fact_events.csv 데이터만 사용할거야. 유저 스토리를 이 내용을 참고해서 다시 작성해줘."
+**AI Response**: User Stories generated based on actual CSV schema (전자제품 주문 데이터):
+- 2 personas: 데모 운영자, 데모 관객
+- 11 user stories (US-1~US-11): 9개 정상 흐름 + 2개 에러 처리
+- 20개 사전 정의 질문 예시 포함
+- Acceptance Criteria: 체크리스트 형식
+- CSV 실제 컬럼 기반 (Customer ID, Age, Gender, Product Type, Total Price 등)
+**Context**: User Stories Part 2 (Generation) completed. Awaiting approval.
+
+---
+
+## INCEPTION - User Stories (Approved)
+**Timestamp**: 2026-05-20T10:00:00Z
+**User Input**: "Application Design 진행해줘."
+**AI Response**: User Stories implicitly approved. Proceeding to Application Design.
+**Context**: User Stories stage completed.
+
+---
+
+## INCEPTION - Application Design
+**Timestamp**: 2026-05-20T10:01:00Z
+**User Input**: (continuation from above)
+**AI Response**: Application Design artifacts generated:
+- components.md: 5 components (bedrock_client, query_parser, data_executor, visualizer, app)
+- component-methods.md: 9 method signatures
+- services.md: Pipeline orchestrator (app.py 내장), 에러 처리 전략
+- component-dependency.md: 의존성 매트릭스 + 데이터 흐름도
+- application-design.md: 통합 문서
+**Context**: Application Design completed. Awaiting approval.
+
+---
