@@ -35,6 +35,48 @@ def validate_select_only(sql: str) -> None:
             )
 
 
+def validate_view_ddl(sql: str) -> None:
+    """CREATE OR REPLACE VIEW 문만 허용한다.
+
+    Raises:
+        ValueError: 허용되지 않는 DDL인 경우
+    """
+    normalized = sql.strip().upper()
+    if not normalized.startswith("CREATE OR REPLACE VIEW"):
+        raise ValueError(
+            "허용되지 않는 DDL입니다. CREATE OR REPLACE VIEW만 지원합니다."
+        )
+    # DROP, DELETE 등 위험 키워드가 포함되어 있는지 추가 검증
+    dangerous = ["DROP ", "DELETE ", "INSERT ", "UPDATE ", "TRUNCATE "]
+    for keyword in dangerous:
+        if keyword in normalized:
+            raise ValueError(
+                f"위험한 키워드가 감지되었습니다: {keyword.strip()}"
+            )
+
+
+def run_ddl(sql: str) -> None:
+    """Athena에서 DDL(CREATE OR REPLACE VIEW)을 실행한다.
+
+    Args:
+        sql: CREATE OR REPLACE VIEW SQL 문자열
+
+    Raises:
+        ValueError: 허용되지 않는 DDL인 경우
+        RuntimeError: Athena 실행 실패 시
+    """
+    validate_view_ddl(sql)
+
+    response = _client.start_query_execution(
+        QueryString=sql,
+        QueryExecutionContext={"Database": ATHENA_DATABASE},
+        WorkGroup=ATHENA_WORKGROUP,
+        ResultConfiguration={"OutputLocation": ATHENA_OUTPUT},
+    )
+    query_execution_id = response["QueryExecutionId"]
+    _wait_for_query(query_execution_id)
+
+
 def run_query(sql: str) -> pd.DataFrame:
     """Athena에서 SQL을 실행하고 결과를 DataFrame으로 반환한다.
 

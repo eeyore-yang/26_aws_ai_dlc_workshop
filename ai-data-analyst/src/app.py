@@ -7,6 +7,7 @@ import streamlit as st
 
 from bedrock_client import ask_text2sql
 from data_executor import run_query, validate_select_only
+from mart_agent import run_mart_pipeline
 from query_parser import build_prompt
 from visualizer import generate_chart, generate_description
 
@@ -16,6 +17,25 @@ def main() -> None:
     st.set_page_config(page_title="AI 데이터 분석가", page_icon="📊", layout="wide")
     st.title("📊 AI 데이터 분석가")
     st.caption("자연어로 데이터에 대해 질문하세요. AI가 분석하고 시각화합니다.")
+
+    # 사이드바: 예시 질문
+    with st.sidebar:
+        st.header("💡 예시 질문")
+        examples = [
+            "제품 유형별 총 매출을 보여줘",
+            "월별 매출 추이를 보여줘",
+            "성별 구매 비중은?",
+            "연령대별 평균 구매 금액은?",
+            "결제 수단별 주문 건수를 보여줘",
+            "제품별 주문 취소율은?",
+            "배송 유형별 평균 주문 금액은?",
+            "로열티 멤버와 일반 고객의 매출 차이는?",
+            "가장 많이 팔린 제품은?",
+            "분기별 주문 건수 추이를 보여줘",
+        ]
+        for ex in examples:
+            if st.button(ex, use_container_width=True):
+                st.session_state["pending_question"] = ex
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -37,7 +57,10 @@ def _render_history() -> None:
 
 def _handle_input() -> None:
     """사용자 입력을 처리한다."""
-    question = st.chat_input("데이터에 대해 궁금한 점을 물어보세요...")
+    # 사이드바 버튼에서 온 질문 또는 채팅 입력
+    question = st.session_state.pop("pending_question", None)
+    if not question:
+        question = st.chat_input("데이터에 대해 궁금한 점을 물어보세요...")
     if not question:
         return
 
@@ -48,8 +71,19 @@ def _handle_input() -> None:
 
     # 어시스턴트 응답
     with st.chat_message("assistant"):
-        with st.spinner("분석 중..."):
-            _run_pipeline(question)
+        with st.spinner("🤖 의도 분석 중..."):
+            try:
+                intent_type, context = run_mart_pipeline(question)
+            except Exception as e:
+                st.warning(f"의도 분류 실패, 기본 분석으로 진행합니다: {e}")
+                intent_type = "simple_analysis"
+                context = {}
+
+        if intent_type == "mart_creation":
+            _run_mart_pipeline(question, context)
+        else:
+            with st.spinner("분석 중..."):
+                _run_pipeline(question)
 
 
 def _run_pipeline(question: str) -> None:
@@ -59,7 +93,6 @@ def _run_pipeline(question: str) -> None:
         prompt = build_prompt(question)
         result = ask_text2sql(question, prompt)
         sql = result.get("sql", "")
-        st.info(f"🔍 생성된 SQL: `{sql}`")
     except Exception as e:
         _show_error(f"SQL 생성에 실패했습니다: {e}")
         return
@@ -68,7 +101,6 @@ def _run_pipeline(question: str) -> None:
     try:
         validate_select_only(sql)
         df = run_query(sql)
-        st.info(f"✅ Athena 성공: {len(df)}행 반환")
     except ValueError as e:
         _show_error(str(e))
         return
@@ -82,16 +114,13 @@ def _run_pipeline(question: str) -> None:
     # Step 3: 차트 생성 (Model-2) — 실패해도 계속 진행
     try:
         chart_image = generate_chart(question, df)
-        st.info(f"📊 차트 생성: {'성공' if chart_image else '실패(None)'}")
-    except Exception as e:
-        st.warning(f"차트 생성 에러: {e}")
+    except Exception:
         chart_image = None
 
     # Step 4: 설명 작성 (Model-3) — 실패해도 계속 진행
     try:
         description = generate_description(question, df, chart_image)
-    except Exception as e:
-        st.warning(f"설명 생성 에러: {e}")
+    except Exception:
         description = "설명 생성에 실패했습니다."
 
     # Step 5: 결과 렌더링
@@ -114,6 +143,86 @@ def _render_result(
         st.dataframe(df, use_container_width=True)
 
     # 세션에 저장
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": description,
+            "image": chart_image,
+            "dataframe": df,
+        }
+    )
+
+
+if __name__ == "__main__":
+    main()
+
+
+def _run_mart_pipeline(question: str, context: dict) -> None:
+    """데이터 마트 생성 파이프라인을 실행하고 결과를 렌더링한다."""
+    view_name = context.get("view_name", "")
+    mart_description = context.get("mart_description", "")
+    mart_sql = context.get("mart_sql", "")
+    analysis_prompt = context.get("analysis_prompt", "")
+
+    # 마트 생성 결과 표시
+    st.success(f"🏗️ 데이터 마트 생성 완료: `{view_name}`")
+    if mart_description:
+        st.info(f"📋 마트 설명: {mart_description}")
+    with st.expander("🔧 생성된 VIEW SQL", expanded=False):
+        st.code(mart_sql, language="sql")
+
+    # 마트 기반 분석 SQL 생성
+    try:
+        result = ask_text2sql(question, analysis_prompt)
+        sql = result.get("sql", "")
+        st.info(f"🔍 분석 SQL: `{sql}`")
+    except Exception as e:
+        _show_error(f"마트 분석 SQL 생성 실패: {e}")
+        return
+
+    # Athena 실행
+    try:
+        validate_select_only(sql)
+        df = run_query(sql)
+        st.info(f"✅ Athena 성공: {len(df)}행 반환")
+    except ValueError as e:
+        _show_error(str(e))
+        return
+    except RuntimeError as e:
+        _show_error(f"쿼리 실행 실패: {e}")
+        return
+    except Exception as e:
+        _show_error(f"데이터 조회 오류: {e}")
+        return
+
+    # 차트 생성
+    try:
+        chart_image = generate_chart(question, df)
+    except Exception:
+        chart_image = None
+
+    # 설명 생성
+    try:
+        description = generate_description(question, df, chart_image)
+    except Exception:
+        description = "마트 기반 분석 결과입니다."
+
+    # 결과 렌더링
+    _render_result(description, chart_image, df)
+
+
+def _render_result(
+    description: str, chart_image: Optional[bytes], df: "pd.DataFrame"
+) -> None:
+    """분석 결과를 Streamlit에 렌더링한다."""
+    st.markdown(description)
+
+    if chart_image:
+        st.image(chart_image, use_container_width=True)
+
+    with st.expander("📋 데이터 테이블 보기", expanded=False):
+        st.dataframe(df, use_container_width=True)
+
     st.session_state.messages.append(
         {
             "role": "assistant",
