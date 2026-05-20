@@ -1,4 +1,3 @@
-data/fact_events.csv
 data/mart.duckdb
 __pycache__/
 *.pyc
