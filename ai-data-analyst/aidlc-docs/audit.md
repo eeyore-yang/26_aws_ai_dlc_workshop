@@ -247,3 +247,22 @@ MOCK_MODE는 Bedrock 미연결 시 UI 흐름 테스트용이었으나, 2-모델 
 - 문서만 현실에 맞춤
 
 ---
+
+## CONSTRUCTION - Code Generation (Post-Generation Documentation)
+**Timestamp**: 2026-05-20T15:30:00Z
+**User Input**: "코드 제너레이션이 끝났다고 판단했고, 관련된 절차들을 진행해줘. 문서들 생성/업데이트 포함해서"
+**AI Response**: 코드 제너레이션 완료 후 누락된 문서 생성 및 상태 업데이트 수행:
+1. `aidlc-docs/construction/chatbot/code/code-summary.md` 생성 (코드 요약 문서)
+2. `aidlc-docs/inception/plans/execution-plan.md` 생성 (실행 계획 문서)
+3. `aidlc-docs/aidlc-state.md` 업데이트 (진행 상태 반영 — Code Generation COMPLETED, Build and Test NEXT)
+4. `aidlc-docs/audit.md` 업데이트 (본 기록)
+**Context**: Code Generation 단계 완료 확정. 모든 12개 플랜 스텝 완료, 11개 파일 생성/수정됨. 다음 단계: Build and Test.
+
+---
+
+## CONSTRUCTION - Code Generation (Approval)
+**Timestamp**: 2026-05-20T15:30:00Z
+**Status**: COMPLETED (사용자 확인 — "코드 제너레이션이 끝났다고 판단했고")
+**Context**: 사용자가 코드 제너레이션 완료를 확인함. Code Generation 단계 공식 종료.
+
+---

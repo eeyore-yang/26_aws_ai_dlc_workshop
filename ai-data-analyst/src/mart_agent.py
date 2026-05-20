@@ -76,22 +76,29 @@ def execute_mart_creation(mart_result: Dict[str, Any]) -> str:
     return view_name
 
 
-def build_mart_analysis_prompt(question: str, view_name: str) -> str:
+def build_mart_analysis_prompt(question: str, view_name: str, mart_sql: str = "") -> str:
     """생성된 마트(VIEW) 위에서 분석 SQL을 생성하기 위한 프롬프트를 조립한다."""
     system_prompt = _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 
-    # 기존 시스템 프롬프트에 마트 정보를 추가
+    # 마트 SQL에서 컬럼 힌트 추출
     mart_context = f"""
 
 ## Additional Context
 A data mart view has been created: {ATHENA_DATABASE}.{view_name}
-You should query FROM {ATHENA_DATABASE}.{view_name} instead of fact_events.
-The view already has pre-computed columns, so you may not need CAST() for its derived columns.
-Still use standard Athena SQL syntax.
+
+### VIEW Definition (for column reference):
+```sql
+{mart_sql}
+```
+
+You MUST query FROM {ATHENA_DATABASE}.{view_name} (not fact_events).
+Only use columns that exist in the VIEW definition above.
+The view already has pre-computed/aggregated columns — do NOT re-aggregate unless doing further grouping.
+Use standard Athena SQL syntax.
 
 ## Current Question
 User: {question}
-분석 결과를 보여줘. 생성된 마트({view_name})를 활용해서 가장 인사이트 있는 쿼리를 작성해줘.
+위 마트를 활용해서 가장 인사이트 있는 분석 쿼리를 작성해줘. VIEW에 정의된 컬럼만 사용할 것.
 Assistant:
 """
     return system_prompt + mart_context
@@ -119,7 +126,7 @@ def run_mart_pipeline(question: str) -> Tuple[str, Dict[str, Any]]:
     view_name = execute_mart_creation(mart_result)
 
     # Step 4: 분석 프롬프트 생성
-    analysis_prompt = build_mart_analysis_prompt(question, view_name)
+    analysis_prompt = build_mart_analysis_prompt(question, view_name, mart_result.get("sql", ""))
 
     return "mart_creation", {
         "view_name": view_name,

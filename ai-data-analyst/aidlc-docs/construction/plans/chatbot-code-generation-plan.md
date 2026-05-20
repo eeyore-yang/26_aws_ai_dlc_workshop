@@ -19,7 +19,7 @@
 - [x] Step 9: src/visualizer.py 구현 (차트 생성 + 설명 작성 래퍼)
 - [x] Step 10: src/app.py 구현 (Streamlit UI + 파이프라인 통합)
 - [x] Step 11: requirements.txt 업데이트
-- [x] Step 12: 코드 요약 문서 생성
+- [x] Step 12: 코드 요약 문서 생성 → `aidlc-docs/construction/chatbot/code/code-summary.md`
 
 ## Story Traceability
 | Step | Stories | Status |

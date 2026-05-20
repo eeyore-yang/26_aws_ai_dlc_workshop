@@ -1,4 +1,4 @@
-"""Streamlit 챗봇 UI — AI 데이터 분석가."""
+"""Streamlit 챗봇 UI — AI 데이터 분석가 + 동적 데이터 마트 에이전트."""
 from __future__ import annotations
 
 from typing import Optional
@@ -21,20 +21,25 @@ def main() -> None:
     # 사이드바: 예시 질문
     with st.sidebar:
         st.header("💡 예시 질문")
-        examples = [
+        st.subheader("단순 분석")
+        simple_examples = [
             "제품 유형별 총 매출을 보여줘",
             "월별 매출 추이를 보여줘",
             "성별 구매 비중은?",
             "연령대별 평균 구매 금액은?",
-            "결제 수단별 주문 건수를 보여줘",
-            "제품별 주문 취소율은?",
-            "배송 유형별 평균 주문 금액은?",
-            "로열티 멤버와 일반 고객의 매출 차이는?",
-            "가장 많이 팔린 제품은?",
-            "분기별 주문 건수 추이를 보여줘",
         ]
-        for ex in examples:
-            if st.button(ex, use_container_width=True):
+        for ex in simple_examples:
+            if st.button(ex, use_container_width=True, key=f"s_{ex}"):
+                st.session_state["pending_question"] = ex
+
+        st.subheader("🏗️ 데이터 마트 생성")
+        mart_examples = [
+            "연령대별 제품유형별 월간 매출 마트를 만들어줘",
+            "고객 세그먼트별 구매 패턴 분석용 마트 구성해줘",
+            "결제수단별 배송유형별 주문 분석 마트를 생성해줘",
+        ]
+        for ex in mart_examples:
+            if st.button(ex, use_container_width=True, key=f"m_{ex}"):
                 st.session_state["pending_question"] = ex
 
     if "messages" not in st.session_state:
@@ -57,108 +62,64 @@ def _render_history() -> None:
 
 def _handle_input() -> None:
     """사용자 입력을 처리한다."""
-    # 사이드바 버튼에서 온 질문 또는 채팅 입력
     question = st.session_state.pop("pending_question", None)
     if not question:
         question = st.chat_input("데이터에 대해 궁금한 점을 물어보세요...")
     if not question:
         return
 
-    # 사용자 메시지 추가
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)
 
-    # 어시스턴트 응답
     with st.chat_message("assistant"):
         with st.spinner("🤖 의도 분석 중..."):
             try:
                 intent_type, context = run_mart_pipeline(question)
             except Exception as e:
-                st.warning(f"의도 분류 실패, 기본 분석으로 진행합니다: {e}")
+                st.warning(f"의도 분류 실패, 기본 분석으로 진행: {e}")
                 intent_type = "simple_analysis"
                 context = {}
 
         if intent_type == "mart_creation":
-            _run_mart_pipeline(question, context)
+            _run_mart_creation(question, context)
         else:
             with st.spinner("분석 중..."):
-                _run_pipeline(question)
+                _run_simple_analysis(question)
 
 
-def _run_pipeline(question: str) -> None:
-    """3-모델 파이프라인을 실행하고 결과를 렌더링한다."""
-    # Step 1: 프롬프트 조립 + Text2SQL (Model-1)
+def _run_simple_analysis(question: str) -> None:
+    """기존 3-모델 파이프라인 (단순 분석)."""
+    # Text2SQL
     try:
         prompt = build_prompt(question)
         result = ask_text2sql(question, prompt)
         sql = result.get("sql", "")
+        st.info(f"🔍 생성된 SQL: `{sql}`")
     except Exception as e:
-        _show_error(f"SQL 생성에 실패했습니다: {e}")
+        _show_error(f"SQL 생성 실패: {e}")
         return
 
-    # Step 2: SQL 검증 + Athena 실행
+    # Athena 실행
     try:
         validate_select_only(sql)
         df = run_query(sql)
-    except ValueError as e:
+        st.info(f"✅ {len(df)}행 반환")
+    except (ValueError, RuntimeError) as e:
         _show_error(str(e))
         return
-    except RuntimeError as e:
-        _show_error(f"쿼리 실행에 실패했습니다: {e}")
-        return
     except Exception as e:
-        _show_error(f"데이터 조회 중 오류가 발생했습니다: {e}")
+        _show_error(f"데이터 조회 오류: {e}")
         return
 
-    # Step 3: 차트 생성 (Model-2) — 실패해도 계속 진행
-    try:
-        chart_image = generate_chart(question, df)
-    except Exception:
-        chart_image = None
-
-    # Step 4: 설명 작성 (Model-3) — 실패해도 계속 진행
-    try:
-        description = generate_description(question, df, chart_image)
-    except Exception:
-        description = "설명 생성에 실패했습니다."
-
-    # Step 5: 결과 렌더링
+    # 차트 + 설명
+    chart_image = _safe_chart(question, df)
+    description = _safe_description(question, df, chart_image)
     _render_result(description, chart_image, df)
 
 
-def _render_result(
-    description: str, chart_image: Optional[bytes], df: "pd.DataFrame"
-) -> None:
-    """분석 결과를 Streamlit에 렌더링한다."""
-    # 설명 표시
-    st.markdown(description)
-
-    # 차트 이미지 표시
-    if chart_image:
-        st.image(chart_image, use_container_width=True)
-
-    # 데이터 테이블 표시
-    with st.expander("📋 데이터 테이블 보기", expanded=False):
-        st.dataframe(df, use_container_width=True)
-
-    # 세션에 저장
-    st.session_state.messages.append(
-        {
-            "role": "assistant",
-            "content": description,
-            "image": chart_image,
-            "dataframe": df,
-        }
-    )
-
-
-if __name__ == "__main__":
-    main()
-
-
-def _run_mart_pipeline(question: str, context: dict) -> None:
-    """데이터 마트 생성 파이프라인을 실행하고 결과를 렌더링한다."""
+def _run_mart_creation(question: str, context: dict) -> None:
+    """데이터 마트 생성 → 분석 파이프라인."""
     view_name = context.get("view_name", "")
     mart_description = context.get("mart_description", "")
     mart_sql = context.get("mart_sql", "")
@@ -167,7 +128,7 @@ def _run_mart_pipeline(question: str, context: dict) -> None:
     # 마트 생성 결과 표시
     st.success(f"🏗️ 데이터 마트 생성 완료: `{view_name}`")
     if mart_description:
-        st.info(f"📋 마트 설명: {mart_description}")
+        st.info(f"📋 {mart_description}")
     with st.expander("🔧 생성된 VIEW SQL", expanded=False):
         st.code(mart_sql, language="sql")
 
@@ -184,31 +145,34 @@ def _run_mart_pipeline(question: str, context: dict) -> None:
     try:
         validate_select_only(sql)
         df = run_query(sql)
-        st.info(f"✅ Athena 성공: {len(df)}행 반환")
-    except ValueError as e:
+        st.info(f"✅ {len(df)}행 반환")
+    except (ValueError, RuntimeError) as e:
         _show_error(str(e))
-        return
-    except RuntimeError as e:
-        _show_error(f"쿼리 실행 실패: {e}")
         return
     except Exception as e:
         _show_error(f"데이터 조회 오류: {e}")
         return
 
-    # 차트 생성
-    try:
-        chart_image = generate_chart(question, df)
-    except Exception:
-        chart_image = None
-
-    # 설명 생성
-    try:
-        description = generate_description(question, df, chart_image)
-    except Exception:
-        description = "마트 기반 분석 결과입니다."
-
-    # 결과 렌더링
+    # 차트 + 설명
+    chart_image = _safe_chart(question, df)
+    description = _safe_description(question, df, chart_image)
     _render_result(description, chart_image, df)
+
+
+def _safe_chart(question: str, df) -> Optional[bytes]:
+    """차트 생성 (실패 시 None 반환)."""
+    try:
+        return generate_chart(question, df)
+    except Exception:
+        return None
+
+
+def _safe_description(question: str, df, chart_image: Optional[bytes]) -> str:
+    """설명 생성 (실패 시 기본 메시지)."""
+    try:
+        return generate_description(question, df, chart_image)
+    except Exception:
+        return "분석 결과입니다."
 
 
 def _render_result(

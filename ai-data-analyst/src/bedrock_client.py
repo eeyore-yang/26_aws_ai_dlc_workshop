@@ -14,7 +14,7 @@ TEXT2SQL_MODEL_ID: str = os.getenv(
     "BEDROCK_TEXT2SQL_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
 )
 CHART_MODEL_ID: str = os.getenv(
-    "BEDROCK_CHART_MODEL_ID", "qwen.qwen3-coder-next"
+    "BEDROCK_CHART_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
 )
 DESCRIPTION_MODEL_ID: str = os.getenv(
     "BEDROCK_DESCRIPTION_MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0"
