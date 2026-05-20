@@ -247,3 +247,14 @@ MOCK_MODE는 Bedrock 미연결 시 UI 흐름 테스트용이었으나, 2-모델 
 - 문서만 현실에 맞춤
 
 ---
+
+## CONSTRUCTION - Build and Test
+**Timestamp**: 2026-05-20T15:40:00Z
+**User Input**: "코드 생성은 끝난 것 같아. 다음 단계로 진행할까?" → "고"
+**AI Response**: Build and Test stage completed:
+- build-instructions.md: 의존성, credentials, 인프라 셋업, 앱 실행 방법
+- integration-test-instructions.md: CLI E2E 테스트, 10개 질문 검증 매트릭스, 에러 시나리오
+- build-and-test-summary.md: 빌드/테스트 상태 요약, 알려진 이슈, 데모 준비 상태
+**Context**: Build and Test completed. AI-DLC workflow 전체 완료.
+
+---
